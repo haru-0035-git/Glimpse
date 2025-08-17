@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Article } from '../types';
 import './ArticleForm.css';
 
 const ArticleForm: React.FC = () => {
@@ -9,6 +8,7 @@ const ArticleForm: React.FC = () => {
   const navigate = useNavigate();
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
+  const [tags, setTags] = useState('');
   const [error, setError] = useState<string | null>(null);
   const isEditing = Boolean(id);
 
@@ -25,6 +25,7 @@ const ArticleForm: React.FC = () => {
         .then(response => {
           setTitle(response.data.title);
           setContent(response.data.content);
+          setTags(response.data.tags ? response.data.tags.join(', ') : '');
         })
         .catch(err => {
           console.error(`Error fetching article ${id}:`, err);
@@ -37,7 +38,11 @@ const ArticleForm: React.FC = () => {
     e.preventDefault();
     setError(null);
 
-    const articleData = { title, content };
+    const articleData = {
+      title,
+      content,
+      tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag),
+    };
 
     try {
       if (isEditing) {
@@ -65,6 +70,15 @@ const ArticleForm: React.FC = () => {
             value={title}
             onChange={(e) => setTitle(e.target.value)}
             required
+          />
+        </div>
+        <div className="form-group">
+          <label htmlFor="tags">タグ (カンマ区切り)</label>
+          <input
+            type="text"
+            id="tags"
+            value={tags}
+            onChange={(e) => setTags(e.target.value)}
           />
         </div>
         <div className="form-group">

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import axios from 'axios';
 import { Article } from '../types';
+import ReactMarkdown from 'react-markdown';
 import './ArticleDetail.css';
 
 const ArticleDetail: React.FC = () => {
@@ -40,10 +41,19 @@ const ArticleDetail: React.FC = () => {
 
   return (
     <div className="article-detail-container">
-      <h1>{article.title}</h1>
-      <p className="article-meta">投稿日: {new Date(article.createdAt).toLocaleDateString()}</p>
+      <div className="article-header">
+        <h1>{article.title}</h1>
+        <div className="article-meta">
+          <span>投稿日: {new Date(article.createdAt).toLocaleDateString()}</span>
+          <div className="tags-container">
+            {article.tags && article.tags.map(tag => (
+              <span key={tag} className="tag">{tag}</span>
+            ))}
+          </div>
+        </div>
+      </div>
       <div className="article-content">
-        {article.content}
+        <ReactMarkdown>{article.content}</ReactMarkdown>
       </div>
     </div>
   );

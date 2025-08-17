@@ -61,8 +61,10 @@ const Admin: React.FC = () => {
               <td>{article.title}</td>
               <td>{new Date(article.createdAt).toLocaleString()}</td>
               <td>
-                <Link to={`/admin/edit/${article.id}`} className="btn btn-secondary">編集</Link>
-                <button onClick={() => handleDelete(article.id)} className="btn btn-danger">削除</button>
+                <div className="actions">
+                  <Link to={`/admin/edit/${article.id}`} className="btn btn-secondary">編集</Link>
+                  <button onClick={() => handleDelete(article.id)} className="btn btn-danger">削除</button>
+                </div>
               </td>
             </tr>
           ))}

@@ -1,5 +1,6 @@
 package cc.haruverse.backend.entity;
 
+import jakarta.persistence.ElementCollection;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -9,6 +10,7 @@ import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Entity
 public class Article {
@@ -22,6 +24,9 @@ public class Article {
 
     @Column(columnDefinition = "TEXT", nullable = false)
     private String content;
+
+    @ElementCollection
+    private List<String> tags;
 
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -63,6 +68,14 @@ public class Article {
 
     public void setContent(String content) {
         this.content = content;
+    }
+
+    public List<String> getTags() {
+        return tags;
+    }
+
+    public void setTags(List<String> tags) {
+        this.tags = tags;
     }
 
     public LocalDateTime getCreatedAt() {
