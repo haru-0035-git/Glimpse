@@ -6,7 +6,6 @@ import Login from './pages/Login';
 import Admin from './pages/Admin';
 import ArticleForm from './pages/ArticleForm';
 import Header from './components/Header';
-import './App.css';
 
 function App() {
   return (
