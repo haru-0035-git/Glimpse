@@ -57,6 +57,11 @@
 .tags-container {
   display: flex;
   gap: 0.5rem;
+  /* Add these lines to prevent wrapping and handle overflow */
+  flex-wrap: nowrap; /* Prevent tags from wrapping to the next line */
+  overflow-x: auto; /* Add horizontal scroll if tags exceed container width */
+  -webkit-overflow-scrolling: touch; /* Improve scrolling on iOS */
+  padding-bottom: 5px; /* Add some padding for scrollbar if present */
 }
 
 .tag {
@@ -65,6 +70,9 @@
   border-radius: 15px;
   padding: 0.2rem 0.6rem;
   font-size: 0.7rem;
+  /* Add this line to prevent text inside tag from wrapping */
+  white-space: nowrap;
+  flex-shrink: 0; /* Prevent tags from shrinking */
 }
 
 .error {

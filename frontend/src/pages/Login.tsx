@@ -14,29 +14,24 @@ const Login: React.FC = () => {
     setError(null);
 
     try {
-      // Basic認証のためにユーザー名とパスワードをエンコード
-      const token = btoa(`${username}:${password}`);
-      
-      // このリクエストは認証を確認するためだけのもの
-      // SecurityConfigで /api/test-auth のようなエンドポイントをADMINロールで保護し、
-      // 200 OKが返るかで認証成功を判断するのがより堅牢
-      // ここでは簡略化のため、/api/articles にGETリクエストを送って試す
-      await axios.get('http://localhost:8080/api/articles', {
-        headers: {
-          'Authorization': `Basic ${token}`
-        }
+      const response = await axios.post('http://localhost:8080/api/authenticate', {
+        username,
+        password,
       });
 
-      // 認証情報をlocalStorageに保存（推奨されないが、MVPのため簡略化）
-      localStorage.setItem('authToken', token);
+      const jwtToken = response.data.jwt; // Assuming the backend returns { jwt: "your_token" }
 
-      // axiosのデフォルトヘッダーに設定
-      axios.defaults.headers.common['Authorization'] = `Basic ${token}`;
+      localStorage.setItem('jwtToken', jwtToken); // Store JWT token
+      axios.defaults.headers.common['Authorization'] = `Bearer ${jwtToken}`; // Set default Authorization header
 
-      navigate('/admin');
+      navigate('/admin'); // Redirect to admin page on successful login
     } catch (err) {
       console.error("Login failed:", err);
-      setError('ログインに失敗しました。ユーザー名またはパスワードを確認してください。');
+      if (axios.isAxiosError(err) && err.response) {
+        setError(err.response.data.message || 'ログインに失敗しました。ユーザー名またはパスワードを確認してください。');
+      } else {
+        setError('ログインに失敗しました。ユーザー名またはパスワードを確認してください。');
+      }
     }
   };
 
