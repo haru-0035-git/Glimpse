@@ -10,13 +10,13 @@ const Admin: React.FC = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem('jwtToken');
     if (!token) {
       navigate('/login');
       return;
     }
     // Set auth token for subsequent requests
-    axios.defaults.headers.common['Authorization'] = `Basic ${token}`;
+    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
     axios.get('http://localhost:8080/api/articles')
       .then(response => {

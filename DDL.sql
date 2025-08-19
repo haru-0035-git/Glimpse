@@ -33,12 +33,3 @@ CREATE TABLE article_tags (
     FOREIGN KEY (article_id) REFERENCES articles(id) ON DELETE CASCADE,
     FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
 );
-
-insert into users (username, password, is_admin) values ('haru', 'tondesaitama123', true);
-
-show columns from users;
-
-alter table users drop column isadmin;
-
-ALTER TABLE users
-modify COLUMN is_admin BOOLEAN NOT NULL DEFAULT FALSE;

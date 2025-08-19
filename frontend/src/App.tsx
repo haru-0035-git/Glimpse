@@ -6,6 +6,7 @@ import Login from './pages/Login';
 import Admin from './pages/Admin';
 import ArticleForm from './pages/ArticleForm';
 import Header from './components/Header';
+import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
   return (
@@ -16,9 +17,9 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/articles/:id" element={<ArticleDetail />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/admin" element={<Admin />} />
-          <Route path="/admin/new" element={<ArticleForm />} />
-          <Route path="/admin/edit/:id" element={<ArticleForm />} />
+          <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
+          <Route path="/admin/new" element={<ProtectedRoute><ArticleForm /></ProtectedRoute>} />
+          <Route path="/admin/edit/:id" element={<ProtectedRoute><ArticleForm /></ProtectedRoute>} />
         </Routes>
       </main>
     </Router>
