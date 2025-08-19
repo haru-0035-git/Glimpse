@@ -2,7 +2,8 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 4rem 0;
+    min-height: calc(100vh - 200px); /* Adjust based on header/footer height */
+    padding: 2rem;
 }
 
 .login-form {
@@ -33,6 +34,7 @@
     padding: 0.5rem;
     border: 1px solid #ccc;
     border-radius: 4px;
+    box-sizing: border-box;
 }
 
 button {

@@ -1,16 +1,18 @@
 package cc.haruverse.backend.entity;
 
-import jakarta.persistence.ElementCollection;
+import java.time.LocalDateTime;
+import java.util.Set;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.Column;
+import jakarta.persistence.ManyToMany;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.JoinColumn;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
-
-import java.time.LocalDateTime;
-import java.util.List;
 
 @Entity
 public class Article {
@@ -25,8 +27,13 @@ public class Article {
     @Column(columnDefinition = "TEXT", nullable = false)
     private String content;
 
-    @ElementCollection
-    private List<String> tags;
+    @ManyToMany(cascade = CascadeType.PERSIST)
+    @JoinTable(
+        name = "article_tags",
+        joinColumns = @JoinColumn(name = "article_id"),
+        inverseJoinColumns = @JoinColumn(name = "tag_id")
+    )
+    private Set<Tag> tags;
 
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -70,11 +77,11 @@ public class Article {
         this.content = content;
     }
 
-    public List<String> getTags() {
+    public Set<Tag> getTags() {
         return tags;
     }
 
-    public void setTags(List<String> tags) {
+    public void setTags(Set<Tag> tags) {
         this.tags = tags;
     }
 
@@ -93,4 +100,5 @@ public class Article {
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
     }
+
 }

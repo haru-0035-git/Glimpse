@@ -13,12 +13,12 @@ const ArticleForm: React.FC = () => {
   const isEditing = Boolean(id);
 
   useEffect(() => {
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem('jwtToken');
     if (!token) {
       navigate('/login');
       return;
     }
-    axios.defaults.headers.common['Authorization'] = `Basic ${token}`;
+    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
 
     if (isEditing) {
       axios.get(`http://localhost:8080/api/articles/${id}`)

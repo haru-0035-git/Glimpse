@@ -1,0 +1,17 @@
+version: "3.8"
+services:
+  db:
+    image: mysql:8.0
+    container_name: glimpse-mysql-db
+    restart: always
+    ports:
+      - "3308:3306"
+    environment:
+      MYSQL_DATABASE: glimpse_db
+      MYSQL_USER: glimpse_user
+      MYSQL_PASSWORD: glimpse_password
+      MYSQL_ROOT_PASSWORD: rootpassword
+    volumes:
+      - glimpse-mysql-data:/var/lib/mysql
+volumes:
+  glimpse-mysql-data:

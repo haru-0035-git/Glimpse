@@ -16,7 +16,7 @@ public class User {
 
     private String username;
     private String password;
-    private String roles;
+    private boolean isAdmin;
 
     public Long getId() {
         return id;
@@ -42,11 +42,11 @@ public class User {
         this.password = password;
     }
 
-    public String getRoles() {
-        return roles;
+    public boolean isAdmin() {
+        return isAdmin;
     }
 
-    public void setRoles(String roles) {
-        this.roles = roles;
+    public void setAdmin(boolean admin) {
+        isAdmin = admin;
     }
 }

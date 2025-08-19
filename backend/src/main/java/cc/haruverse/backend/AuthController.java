@@ -58,12 +58,7 @@ public class AuthController {
             return ResponseEntity.badRequest().body("Username already exists");
         }
 
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
-        // Default role for new users (e.g., "ROLE_USER")
-        // This needs to be handled properly, possibly by adding a default role or allowing selection
-        // For now, let's assume the User entity has a default or it will be set later.
-        // If roles are not yet implemented in User entity, this part needs adjustment.
-        user.setRoles("ROLE_USER"); // Assign a default role for new registrations
+    user.setPassword(passwordEncoder.encode(user.getPassword()));
         userRepository.save(user);
         return ResponseEntity.ok("User registered successfully");
     }

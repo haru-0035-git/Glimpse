@@ -39,6 +39,7 @@ public class SecurityConfig {
             .requestMatchers(HttpMethod.GET, "/api/articles", "/api/articles/**").permitAll()
             // 開発用: フロントエンドからの記事作成を一時的に許可（必要なら認証に戻してください）
             .requestMatchers(HttpMethod.POST, "/api/articles", "/api/articles/**").permitAll()
+            .requestMatchers(HttpMethod.PUT, "/api/articles/**").permitAll()
             .anyRequest().authenticated()
         )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));

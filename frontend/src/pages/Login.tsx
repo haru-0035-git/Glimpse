@@ -1,11 +1,11 @@
-import React, { useState } from 'react';
-import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
-import './Login.css';
+import React, { useState } from "react";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
+import "./Login.css";
 
 const Login: React.FC = () => {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
@@ -14,23 +14,31 @@ const Login: React.FC = () => {
     setError(null);
 
     try {
-      const response = await axios.post('http://localhost:8080/api/authenticate', {
-        username,
-        password,
-      });
+      const response = await axios.post(
+        "http://localhost:8080/api/authenticate",
+        {
+          username,
+          password,
+        }
+      );
 
       const jwtToken = response.data.jwt; // Assuming the backend returns { jwt: "your_token" }
 
-      localStorage.setItem('jwtToken', jwtToken); // Store JWT token
-      axios.defaults.headers.common['Authorization'] = `Bearer ${jwtToken}`; // Set default Authorization header
+      localStorage.setItem("jwtToken", jwtToken); // Store JWT token
+      axios.defaults.headers.common["Authorization"] = `Bearer ${jwtToken}`; // Set default Authorization header
 
-      navigate('/admin'); // Redirect to admin page on successful login
+      navigate("/admin"); // Redirect to admin page on successful login
     } catch (err) {
       console.error("Login failed:", err);
       if (axios.isAxiosError(err) && err.response) {
-        setError(err.response.data.message || 'ログインに失敗しました。ユーザー名またはパスワードを確認してください。');
+        setError(
+          err.response.data.message ||
+            "ログインに失敗しました。ユーザー名またはパスワードを確認してください。"
+        );
       } else {
-        setError('ログインに失敗しました。ユーザー名またはパスワードを確認してください。');
+        setError(
+          "ログインに失敗しました。ユーザー名またはパスワードを確認してください。"
+        );
       }
     }
   };
@@ -38,7 +46,7 @@ const Login: React.FC = () => {
   return (
     <div className="login-container">
       <form onSubmit={handleLogin} className="login-form">
-        <h2>管理者ログイン</h2>
+        <h2>ログイン</h2>
         {error && <p className="error">{error}</p>}
         <div className="form-group">
           <label htmlFor="username">ユーザー名</label>

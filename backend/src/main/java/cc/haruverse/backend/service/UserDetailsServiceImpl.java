@@ -3,16 +3,11 @@ package cc.haruverse.backend.service;
 import cc.haruverse.backend.entity.User;
 import cc.haruverse.backend.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
-
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.stream.Collectors;
 
 @Service
 public class UserDetailsServiceImpl implements UserDetailsService {
@@ -25,12 +20,15 @@ public class UserDetailsServiceImpl implements UserDetailsService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + username));
 
-        return new org.springframework.security.core.userdetails.User(user.getUsername(), user.getPassword(), getAuthorities(user.getRoles()));
+        // Derive authorities from isAdmin flag
+        java.util.Collection<org.springframework.security.core.GrantedAuthority> authorities;
+        if (user.isAdmin()) {
+            authorities = java.util.List.of(new SimpleGrantedAuthority("ROLE_ADMIN"));
+        } else {
+            authorities = java.util.List.of(new SimpleGrantedAuthority("ROLE_USER"));
+        }
+
+        return new org.springframework.security.core.userdetails.User(user.getUsername(), user.getPassword(), authorities);
     }
 
-    private Collection<? extends GrantedAuthority> getAuthorities(String roles) {
-        return Arrays.stream(roles.split(","))
-                .map(SimpleGrantedAuthority::new)
-                .collect(Collectors.toList());
-    }
 }
