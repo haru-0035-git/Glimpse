@@ -91,7 +91,10 @@ const ArticleForm: React.FC = () => {
             rows={15}
           />
         </div>
-        <button type="submit" className="btn btn-primary">{isEditing ? '更新' : '作成'}</button>
+                <div className="form-actions">
+          <button type="submit" className="btn btn-primary">{isEditing ? '更新' : '作成'}</button>
+          <button type="button" onClick={() => navigate(-1)} className="btn btn-secondary">戻る</button>
+        </div>
       </form>
     </div>
   );

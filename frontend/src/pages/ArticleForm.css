@@ -58,3 +58,21 @@
   color: red;
   margin-bottom: 1rem;
 }
+
+.form-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.form-actions > * {
+  flex: 1;
+}
+
+.btn-secondary {
+  background-color: #6c757d;
+  color: white;
+}
+
+.btn-secondary:hover {
+  background-color: #5a6268;
+}

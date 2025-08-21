@@ -58,7 +58,7 @@ const Admin: React.FC = () => {
         <tbody>
           {articles.map(article => (
             <tr key={article.id}>
-              <td>{article.title}</td>
+              <td><Link to={`/admin/articles/${article.id}`}>{article.title}</Link></td>
               <td>{new Date(article.createdAt).toLocaleString()}</td>
               <td>
                 <div className="actions">

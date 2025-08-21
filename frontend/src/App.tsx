@@ -20,6 +20,7 @@ function App() {
           <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
           <Route path="/admin/new" element={<ProtectedRoute><ArticleForm /></ProtectedRoute>} />
           <Route path="/admin/edit/:id" element={<ProtectedRoute><ArticleForm /></ProtectedRoute>} />
+          <Route path="/admin/articles/:id" element={<ProtectedRoute><ArticleDetail showAdminButtons={true} /></ProtectedRoute>} />
         </Routes>
       </main>
     </Router>
