@@ -14,13 +14,10 @@ const Login: React.FC = () => {
     setError(null);
 
     try {
-      const response = await axios.post(
-        "http://localhost:8080/api/authenticate",
-        {
-          username,
-          password,
-        }
-      );
+      const response = await axios.post("/api/authenticate", {
+        username,
+        password,
+      });
 
       const jwtToken = response.data.jwt; // Assuming the backend returns { jwt: "your_token" }
 

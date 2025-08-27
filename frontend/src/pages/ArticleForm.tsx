@@ -1,33 +1,34 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import './ArticleForm.css';
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import axios from "axios";
+import "./ArticleForm.css";
 
 const ArticleForm: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [title, setTitle] = useState('');
-  const [content, setContent] = useState('');
-  const [tags, setTags] = useState('');
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+  const [tags, setTags] = useState("");
   const [error, setError] = useState<string | null>(null);
   const isEditing = Boolean(id);
 
   useEffect(() => {
-    const token = localStorage.getItem('jwtToken');
+    const token = localStorage.getItem("jwtToken");
     if (!token) {
-      navigate('/login');
+      navigate("/login");
       return;
     }
-    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
 
     if (isEditing) {
-      axios.get(`http://localhost:8080/api/articles/${id}`)
-        .then(response => {
+      axios
+        .get(`/api/articles/${id}`)
+        .then((response) => {
           setTitle(response.data.title);
           setContent(response.data.content);
-          setTags(response.data.tags ? response.data.tags.join(', ') : '');
+          setTags(response.data.tags ? response.data.tags.join(", ") : "");
         })
-        .catch(err => {
+        .catch((err) => {
           console.error(`Error fetching article ${id}:`, err);
           setError("記事の読み込みに失敗しました。");
         });
@@ -41,16 +42,19 @@ const ArticleForm: React.FC = () => {
     const articleData = {
       title,
       content,
-      tags: tags.split(',').map(tag => tag.trim()).filter(tag => tag),
+      tags: tags
+        .split(",")
+        .map((tag) => tag.trim())
+        .filter((tag) => tag),
     };
 
     try {
       if (isEditing) {
-        await axios.put(`http://localhost:8080/api/articles/${id}`, articleData);
+        await axios.put(`/api/articles/${id}`, articleData);
       } else {
-        await axios.post('http://localhost:8080/api/articles', articleData);
+        await axios.post("/api/articles", articleData);
       }
-      navigate('/admin');
+      navigate("/admin");
     } catch (err) {
       console.error("Failed to save article:", err);
       setError("記事の保存に失敗しました。");
@@ -59,7 +63,7 @@ const ArticleForm: React.FC = () => {
 
   return (
     <div className="article-form-container">
-      <h1>{isEditing ? '記事の編集' : '新規記事の作成'}</h1>
+      <h1>{isEditing ? "記事の編集" : "新規記事の作成"}</h1>
       <form onSubmit={handleSubmit} className="article-form">
         {error && <p className="error">{error}</p>}
         <div className="form-group">
@@ -91,9 +95,17 @@ const ArticleForm: React.FC = () => {
             rows={15}
           />
         </div>
-                <div className="form-actions">
-          <button type="submit" className="btn btn-primary">{isEditing ? '更新' : '作成'}</button>
-          <button type="button" onClick={() => navigate(-1)} className="btn btn-secondary">戻る</button>
+        <div className="form-actions">
+          <button type="submit" className="btn btn-primary">
+            {isEditing ? "更新" : "作成"}
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate(-1)}
+            className="btn btn-secondary"
+          >
+            戻る
+          </button>
         </div>
       </form>
     </div>

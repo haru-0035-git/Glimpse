@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { Article } from '../types';
-import './Admin.css';
+import React, { useState, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import axios from "axios";
+import { Article } from "../types";
+import "./Admin.css";
 
 const Admin: React.FC = () => {
   const [articles, setArticles] = useState<Article[]>([]);
@@ -10,29 +10,30 @@ const Admin: React.FC = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const token = localStorage.getItem('jwtToken');
+    const token = localStorage.getItem("jwtToken");
     if (!token) {
-      navigate('/login');
+      navigate("/login");
       return;
     }
     // Set auth token for subsequent requests
-    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
 
-    axios.get('http://localhost:8080/api/articles')
-      .then(response => {
+    axios
+      .get("/api/articles")
+      .then((response) => {
         setArticles(response.data);
       })
-      .catch(err => {
+      .catch((err) => {
         console.error("Error fetching articles:", err);
         setError("記事の読み込みに失敗しました。");
       });
   }, [navigate]);
 
   const handleDelete = async (id: number) => {
-    if (window.confirm('本当にこの記事を削除しますか？')) {
+    if (window.confirm("本当にこの記事を削除しますか？")) {
       try {
-        await axios.delete(`http://localhost:8080/api/articles/${id}`);
-        setArticles(articles.filter(article => article.id !== id));
+        await axios.delete(`/api/articles/${id}`);
+        setArticles(articles.filter((article) => article.id !== id));
       } catch (err) {
         console.error(`Error deleting article ${id}:`, err);
         setError("記事の削除に失敗しました。");
@@ -44,7 +45,9 @@ const Admin: React.FC = () => {
     <div className="admin-container">
       <div className="admin-header">
         <h1>管理者ダッシュボード</h1>
-        <Link to="/admin/new" className="btn btn-primary">新規記事作成</Link>
+        <Link to="/admin/new" className="btn btn-primary">
+          新規記事作成
+        </Link>
       </div>
       {error && <p className="error">{error}</p>}
       <table className="admin-table">
@@ -56,14 +59,28 @@ const Admin: React.FC = () => {
           </tr>
         </thead>
         <tbody>
-          {articles.map(article => (
+          {articles.map((article) => (
             <tr key={article.id}>
-              <td><Link to={`/admin/articles/${article.id}`}>{article.title}</Link></td>
+              <td>
+                <Link to={`/admin/articles/${article.id}`}>
+                  {article.title}
+                </Link>
+              </td>
               <td>{new Date(article.createdAt).toLocaleString()}</td>
               <td>
                 <div className="actions">
-                  <Link to={`/admin/edit/${article.id}`} className="btn btn-secondary">編集</Link>
-                  <button onClick={() => handleDelete(article.id)} className="btn btn-danger">削除</button>
+                  <Link
+                    to={`/admin/edit/${article.id}`}
+                    className="btn btn-secondary"
+                  >
+                    編集
+                  </Link>
+                  <button
+                    onClick={() => handleDelete(article.id)}
+                    className="btn btn-danger"
+                  >
+                    削除
+                  </button>
                 </div>
               </td>
             </tr>
