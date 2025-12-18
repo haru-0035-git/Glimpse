@@ -3,18 +3,24 @@ import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
 import "./Login.css";
 
-const Login: React.FC = () => {
+const Signup: React.FC = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const navigate = useNavigate();
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
+    if (password !== confirmPassword) {
+      setError("パスワードが一致しません。");
+      return;
+    }
+
     try {
-      const response = await axios.post("/api/authenticate", {
+      const response = await axios.post("/api/register", {
         username,
         password,
       });
@@ -26,20 +32,20 @@ const Login: React.FC = () => {
 
       navigate("/admin");
     } catch (err) {
-      console.error("Login failed:", err);
+      console.error("Signup failed:", err);
       if (axios.isAxiosError(err) && err.response) {
         const message = (err.response.data as { message?: string })?.message;
-        setError(message || "ログインに失敗しました。ユーザー名とパスワードを確認してください。");
+        setError(message || "新規登録に失敗しました。入力内容をご確認ください。");
       } else {
-        setError("ログインに失敗しました。時間をおいて再度お試しください。");
+        setError("新規登録に失敗しました。時間をおいて再度お試しください。");
       }
     }
   };
 
   return (
     <div className="login-container">
-      <form onSubmit={handleLogin} className="login-form">
-        <h2>ログイン</h2>
+      <form onSubmit={handleSignup} className="login-form">
+        <h2>アカウントを作成</h2>
         {error && <p className="error">{error}</p>}
         <div className="form-group">
           <label htmlFor="username">ユーザー名</label>
@@ -61,13 +67,23 @@ const Login: React.FC = () => {
             required
           />
         </div>
-        <button type="submit">ログイン</button>
+        <div className="form-group">
+          <label htmlFor="confirmPassword">パスワード（確認）</label>
+          <input
+            type="password"
+            id="confirmPassword"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            required
+          />
+        </div>
+        <button type="submit">登録する</button>
         <p style={{ textAlign: "center", marginTop: "1rem" }}>
-          アカウントをお持ちでない方は <Link to="/signup">新規登録</Link>
+          すでにアカウントをお持ちの方は <Link to="/login">ログイン</Link>
         </p>
       </form>
     </div>
   );
 };
 
-export default Login;
+export default Signup;

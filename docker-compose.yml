@@ -26,6 +26,8 @@ services:
       - SPRING_DATASOURCE_URL=jdbc:mysql://db:3306/glimpse_db
       - SPRING_DATASOURCE_USERNAME=glimpse_user
       - SPRING_DATASOURCE_PASSWORD=glimpse_password
+      - APP_ADMIN_USERNAME=admin
+      - APP_ADMIN_PASSWORD=change_me
 
   frontend:
     build:

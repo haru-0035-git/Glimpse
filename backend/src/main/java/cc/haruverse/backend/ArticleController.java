@@ -8,6 +8,7 @@ import cc.haruverse.backend.entity.Tag;
 import cc.haruverse.backend.entity.User;
 import cc.haruverse.backend.model.ArticleDto;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
@@ -38,17 +39,34 @@ public class ArticleController {
                 .collect(Collectors.toList());
     }
 
+    private User getCurrentUser() {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        return userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+    }
+
+    private boolean canModify(User user, Article article) {
+        return user.isAdmin() || article.getAuthorId().equals(user.getId());
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<ArticleDto> getArticleById(@PathVariable Long id) {
         Optional<Article> article = articleRepository.findById(id);
         return article.map(ArticleDto::new).map(ResponseEntity::ok).orElseGet(() -> ResponseEntity.notFound().build());
     }
 
+    @GetMapping("/my")
+    public List<ArticleDto> getMyArticles() {
+        User currentUser = getCurrentUser();
+        return articleRepository.findByAuthorId(currentUser.getId())
+                .stream()
+                .map(ArticleDto::new)
+                .collect(Collectors.toList());
+    }
+
     @PostMapping
     public ResponseEntity<ArticleDto> createArticle(@RequestBody Article article) {
-        String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        User currentUser = userRepository.findByUsername(username)
-                                        .orElseThrow(() -> new RuntimeException("User not found"));
+        User currentUser = getCurrentUser();
         article.setAuthorId(currentUser.getId());
 
         Set<Tag> managedTags = new HashSet<>();
@@ -75,8 +93,10 @@ public class ArticleController {
         Optional<Article> optionalArticle = articleRepository.findById(id);
         if (optionalArticle.isPresent()) {
             Article article = optionalArticle.get();
-            // Preserve original authorId, do not update from articleDetails
-            // article.setAuthorId(articleDetails.getAuthorId()); // Do NOT do this
+            User currentUser = getCurrentUser();
+            if (!canModify(currentUser, article)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            }
 
             article.setTitle(articleDetails.getTitle());
             article.setContent(articleDetails.getContent());
@@ -104,11 +124,18 @@ public class ArticleController {
 
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteArticle(@PathVariable Long id) {
-        if (articleRepository.existsById(id)) {
-            articleRepository.deleteById(id);
-            return ResponseEntity.noContent().build();
-        } else {
+        Optional<Article> optionalArticle = articleRepository.findById(id);
+        if (optionalArticle.isEmpty()) {
             return ResponseEntity.notFound().build();
         }
+
+        Article article = optionalArticle.get();
+        User currentUser = getCurrentUser();
+        if (!canModify(currentUser, article)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        articleRepository.deleteById(id);
+        return ResponseEntity.noContent().build();
     }
 }

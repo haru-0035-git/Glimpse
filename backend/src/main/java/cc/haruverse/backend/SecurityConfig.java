@@ -34,14 +34,17 @@ public class SecurityConfig {
         http
                 .cors(withDefaults())
                 .csrf(csrf -> csrf.disable())
-        .authorizeHttpRequests(authorize -> authorize
-            .requestMatchers("/api/authenticate", "/api/register").permitAll()
-            .requestMatchers(HttpMethod.GET, "/api/articles", "/api/articles/**").permitAll()
-            // 開発用: フロントエンドからの記事作成を一時的に許可（必要なら認証に戻してください）
-            .requestMatchers(HttpMethod.POST, "/api/articles", "/api/articles/**").permitAll()
-            .requestMatchers(HttpMethod.PUT, "/api/articles/**").permitAll()
-            .anyRequest().authenticated()
-        )
+                .authorizeHttpRequests(authorize -> authorize
+                        .requestMatchers("/api/authenticate", "/api/register").permitAll()
+                        .requestMatchers("/api/users/**").hasRole("ADMIN")
+                        .requestMatchers("/api/me").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/articles/my").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/api/articles", "/api/articles/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/articles", "/api/articles/**").authenticated()
+                        .requestMatchers(HttpMethod.PUT, "/api/articles/**").authenticated()
+                        .requestMatchers(HttpMethod.DELETE, "/api/articles/**").authenticated()
+                        .anyRequest().authenticated()
+                )
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
         http.addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();

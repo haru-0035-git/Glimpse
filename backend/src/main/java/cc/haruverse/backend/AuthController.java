@@ -3,10 +3,13 @@ package cc.haruverse.backend;
 import cc.haruverse.backend.entity.User;
 import cc.haruverse.backend.model.AuthenticationRequest;
 import cc.haruverse.backend.model.AuthenticationResponse;
+import cc.haruverse.backend.model.RegisterRequest;
+import cc.haruverse.backend.model.UserInfoDto;
 import cc.haruverse.backend.repository.UserRepository;
 import cc.haruverse.backend.service.UserDetailsServiceImpl;
 import cc.haruverse.backend.util.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -14,6 +17,11 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+
+import jakarta.validation.Valid;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.List;
 
 @RestController
 @RequestMapping("/api")
@@ -52,14 +60,45 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<?> registerUser(@RequestBody User user) {
-        // Check if username already exists
-        if (userRepository.findByUsername(user.getUsername()).isPresent()) {
-            return ResponseEntity.badRequest().body("Username already exists");
+    public ResponseEntity<?> registerUser(@Valid @RequestBody RegisterRequest request) {
+        if (userRepository.findByUsername(request.getUsername()).isPresent()) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("message", "Username already exists"));
         }
 
-    user.setPassword(passwordEncoder.encode(user.getPassword()));
+        User user = new User();
+        user.setUsername(request.getUsername());
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        user.setAdmin(false);
         userRepository.save(user);
-        return ResponseEntity.ok("User registered successfully");
+
+        // Auto-login newly registered user to streamline UX
+        UserDetails userDetails = userDetailsService.loadUserByUsername(user.getUsername());
+        String jwt = jwtUtil.generateToken(userDetails);
+
+        return ResponseEntity.ok(new AuthenticationResponse(jwt));
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<UserInfoDto> me() {
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        String username = auth.getName();
+        User user = userRepository.findByUsername(username).orElseThrow(() -> new RuntimeException("User not found"));
+        return ResponseEntity.ok(new UserInfoDto(user));
+    }
+
+    @GetMapping("/users")
+    public ResponseEntity<?> getUsers() {
+        org.springframework.security.core.Authentication auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
+        String username = auth.getName();
+        User currentUser = userRepository.findByUsername(username).orElseThrow(() -> new RuntimeException("User not found"));
+        if (!currentUser.isAdmin()) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        List<UserInfoDto> users = userRepository.findAll()
+                .stream()
+                .map(UserInfoDto::new)
+                .collect(Collectors.toList());
+        return ResponseEntity.ok(users);
     }
 }
