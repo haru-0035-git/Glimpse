@@ -5,11 +5,11 @@ export interface Article {
   tags: string[];
   createdAt: string; // or Date
   updatedAt: string; // or Date
-  authorId?: number;
+  authorId?: string;
 }
 
 export interface UserInfo {
-  id: number;
+  id: string;
   username: string;
   admin: boolean;
 }

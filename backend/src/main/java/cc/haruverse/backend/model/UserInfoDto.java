@@ -3,7 +3,7 @@ package cc.haruverse.backend.model;
 import cc.haruverse.backend.entity.User;
 
 public class UserInfoDto {
-    private Long id;
+    private java.util.UUID id;
     private String username;
     private boolean admin;
 
@@ -13,7 +13,7 @@ public class UserInfoDto {
         this.admin = user.isAdmin();
     }
 
-    public Long getId() {
+    public java.util.UUID getId() {
         return id;
     }
 

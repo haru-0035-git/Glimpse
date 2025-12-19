@@ -4,6 +4,7 @@ import cc.haruverse.backend.entity.Article;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.UUID;
 
 public class ArticleDto {
     private Long id;
@@ -12,7 +13,7 @@ public class ArticleDto {
     private List<String> tags;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    private Long authorId;
+    private UUID authorId;
 
     // Constructor to convert Article entity to ArticleDto
     public ArticleDto(Article article) {
@@ -52,7 +53,7 @@ public class ArticleDto {
         return updatedAt;
     }
 
-    public Long getAuthorId() {
+    public UUID getAuthorId() {
         return authorId;
     }
 }

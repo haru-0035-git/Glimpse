@@ -6,6 +6,8 @@ interface ProtectedRouteProps {
   children: React.ReactNode;
 }
 
+type Decoded = { exp?: number; roles?: string };
+
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const token = localStorage.getItem('jwtToken');
 
@@ -14,10 +16,17 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   }
 
   try {
-    const decodedToken: { exp: number } = jwtDecode(token);
+    const decodedToken: Decoded = jwtDecode(token);
     const currentTime = Date.now() / 1000;
 
-    if (decodedToken.exp < currentTime) {
+    if (!decodedToken.exp || decodedToken.exp < currentTime) {
+      localStorage.removeItem('jwtToken');
+      return <Navigate to="/login" replace />;
+    }
+
+    const roles = decodedToken.roles || '';
+    const isAdmin = roles.split(',').includes('ROLE_ADMIN');
+    if (!isAdmin) {
       localStorage.removeItem('jwtToken');
       return <Navigate to="/login" replace />;
     }

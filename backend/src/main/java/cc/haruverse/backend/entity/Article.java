@@ -1,20 +1,21 @@
 package cc.haruverse.backend.entity;
 
-import jakarta.persistence.Table;
-import java.time.LocalDateTime;
-import java.util.HashSet; // HashSetをインポート
-import java.util.Set;
 import jakarta.persistence.CascadeType;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.ManyToMany;
-import jakarta.persistence.JoinTable;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Table;
+import java.time.LocalDateTime;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
 
 @Entity
 @Table(name = "articles")
@@ -30,21 +31,17 @@ public class Article {
     @Column(columnDefinition = "TEXT", nullable = false)
     private String content;
 
-    @Column(nullable = false)
-    private Long authorId;
+    @Column(nullable = false, columnDefinition = "BINARY(16)")
+    private UUID authorId;
 
-    // --- ここからが修正箇所 ---
-
-    // 1. cascadeにMERGEを追加する
-    @ManyToMany(cascade = { CascadeType.PERSIST, CascadeType.MERGE })
+    @ManyToMany(cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     @JoinTable(
-        name = "article_tags",
-        joinColumns = @JoinColumn(name = "article_id"),
-        inverseJoinColumns = @JoinColumn(name = "tag_id")
+            name = "article_tags",
+            joinColumns = @JoinColumn(name = "article_id"),
+            inverseJoinColumns = @JoinColumn(name = "tag_id")
     )
-    private Set<Tag> tags = new HashSet<>(); // HashSetで初期化しておく
+    private Set<Tag> tags = new HashSet<>();
 
-    // 2. 関係を同期するためのヘルパーメソッドを追加する
     public void addTag(Tag tag) {
         this.tags.add(tag);
         tag.getArticles().add(this);
@@ -55,7 +52,6 @@ public class Article {
         tag.getArticles().remove(this);
     }
 
-    
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -71,8 +67,6 @@ public class Article {
     protected void onUpdate() {
         updatedAt = LocalDateTime.now();
     }
-
-    // Getters and Setters
 
     public Long getId() {
         return id;
@@ -98,11 +92,11 @@ public class Article {
         this.content = content;
     }
 
-    public Long getAuthorId() {
+    public UUID getAuthorId() {
         return authorId;
     }
 
-    public void setAuthorId(Long authorId) {
+    public void setAuthorId(UUID authorId) {
         this.authorId = authorId;
     }
 
@@ -129,5 +123,4 @@ public class Article {
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
     }
-
 }

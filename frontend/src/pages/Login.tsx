@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import axios from "axios";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import "./Login.css";
 
 const Login: React.FC = () => {
@@ -20,9 +20,9 @@ const Login: React.FC = () => {
       });
 
       const jwtToken = response.data.jwt;
-
       localStorage.setItem("jwtToken", jwtToken);
       axios.defaults.headers.common["Authorization"] = `Bearer ${jwtToken}`;
+      window.dispatchEvent(new Event("jwt-token-update"));
 
       navigate("/admin");
     } catch (err) {
@@ -62,9 +62,6 @@ const Login: React.FC = () => {
           />
         </div>
         <button type="submit">ログイン</button>
-        <p style={{ textAlign: "center", marginTop: "1rem" }}>
-          アカウントをお持ちでない方は <Link to="/signup">新規登録</Link>
-        </p>
       </form>
     </div>
   );

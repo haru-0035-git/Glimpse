@@ -12,6 +12,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.HashSet;
 import java.util.List;
@@ -45,8 +46,10 @@ public class ArticleController {
                 .orElseThrow(() -> new RuntimeException("User not found"));
     }
 
-    private boolean canModify(User user, Article article) {
-        return user.isAdmin() || article.getAuthorId().equals(user.getId());
+    private void ensureAdmin(User user) {
+        if (!user.isAdmin()) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Admin only");
+        }
     }
 
     @GetMapping("/{id}")
@@ -58,6 +61,7 @@ public class ArticleController {
     @GetMapping("/my")
     public List<ArticleDto> getMyArticles() {
         User currentUser = getCurrentUser();
+        ensureAdmin(currentUser);
         return articleRepository.findByAuthorId(currentUser.getId())
                 .stream()
                 .map(ArticleDto::new)
@@ -67,6 +71,7 @@ public class ArticleController {
     @PostMapping
     public ResponseEntity<ArticleDto> createArticle(@RequestBody Article article) {
         User currentUser = getCurrentUser();
+        ensureAdmin(currentUser);
         article.setAuthorId(currentUser.getId());
 
         Set<Tag> managedTags = new HashSet<>();
@@ -94,9 +99,7 @@ public class ArticleController {
         if (optionalArticle.isPresent()) {
             Article article = optionalArticle.get();
             User currentUser = getCurrentUser();
-            if (!canModify(currentUser, article)) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-            }
+            ensureAdmin(currentUser);
 
             article.setTitle(articleDetails.getTitle());
             article.setContent(articleDetails.getContent());
@@ -129,11 +132,8 @@ public class ArticleController {
             return ResponseEntity.notFound().build();
         }
 
-        Article article = optionalArticle.get();
         User currentUser = getCurrentUser();
-        if (!canModify(currentUser, article)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
+        ensureAdmin(currentUser);
 
         articleRepository.deleteById(id);
         return ResponseEntity.noContent().build();
