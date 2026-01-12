@@ -1,11 +1,17 @@
 # Stage 1: Build the application
-FROM eclipse-temurin:21-jdk-jammy as builder
+FROM eclipse-temurin:21-jdk-jammy AS builder
 WORKDIR /app
+
 COPY .mvn/ .mvn
 COPY mvnw pom.xml ./
-RUN ./mvnw dependency:go-offline
+
+# mvnw may lose executable bit depending on git settings / checkout
+RUN chmod +x mvnw
+
+RUN ./mvnw -B dependency:go-offline
+
 COPY src ./src
-RUN ./mvnw package -DskipTests
+RUN ./mvnw -B package -DskipTests
 
 # Stage 2: Create the final image
 FROM eclipse-temurin:21-jre-jammy
