@@ -5,10 +5,12 @@ import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
+import java.nio.charset.StandardCharsets;
 import java.security.Key;
 import java.util.Date;
 import java.util.HashMap;
@@ -19,8 +21,18 @@ import java.util.stream.Collectors;
 @Component
 public class JwtUtil {
 
-    // For production, move to configuration and use a sufficiently long secret
-    private final Key SECRET_KEY = Keys.hmacShaKeyFor("replace_this_with_a_very_long_secure_key_which_is_at_least_256_bits".getBytes());
+    private final Key secretKey;
+    private final long expirationMs;
+
+    public JwtUtil(
+            @Value("${jwt.secret}") String secret,
+            @Value("${jwt.expiration-ms:1800000}") long expirationMs
+    ) {
+        // HS256 は 256bit(32bytes)以上が必要
+        // base64文字列でもOK。とにかく十分長いランダム文字列を環境変数で渡す
+        this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+        this.expirationMs = expirationMs;
+    }
 
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
@@ -36,12 +48,16 @@ public class JwtUtil {
     }
 
     private Claims extractAllClaims(String token) {
-        Jws<Claims> jws = Jwts.parserBuilder().setSigningKey(SECRET_KEY).build().parseClaimsJws(token);
+        Jws<Claims> jws = Jwts.parserBuilder()
+                .setSigningKey(secretKey)
+                .build()
+                .parseClaimsJws(token);
         return jws.getBody();
     }
 
-    private Boolean isTokenExpired(String token) {
-        return extractExpiration(token).before(new Date());
+    private boolean isTokenExpired(String token) {
+        Date exp = extractExpiration(token);
+        return exp == null || exp.before(new Date());
     }
 
     public String generateToken(UserDetails userDetails) {
@@ -58,12 +74,12 @@ public class JwtUtil {
                 .setClaims(claims)
                 .setSubject(subject)
                 .setIssuedAt(new Date(now))
-                .setExpiration(new Date(now + 1000L * 60 * 60 * 10)) // 10 hours
-                .signWith(SECRET_KEY, SignatureAlgorithm.HS256)
+                .setExpiration(new Date(now + expirationMs))
+                .signWith(secretKey, SignatureAlgorithm.HS256)
                 .compact();
     }
 
-    public Boolean validateToken(String token, UserDetails userDetails) {
+    public boolean validateToken(String token, UserDetails userDetails) {
         final String username = extractUsername(token);
         return (username.equals(userDetails.getUsername()) && !isTokenExpired(token));
     }
