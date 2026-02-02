@@ -7,9 +7,8 @@
     "@testing-library/jest-dom": "^6.6.4",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^13.5.0",
-    "@types/jest": "^27.5.2",
     "@types/jwt-decode": "^2.2.1",
-    "@types/node": "^16.18.126",
+    "@types/node": "^20.11.30",
     "@types/react": "^19.1.10",
     "@types/react-dom": "^19.1.7",
     "axios": "^1.11.0",
@@ -18,7 +17,6 @@
     "react-dom": "^19.1.1",
     "react-markdown": "^10.1.0",
     "react-router-dom": "^7.8.1",
-    "react-scripts": "5.0.1",
     "rehype-raw": "^7.0.0",
     "remark-breaks": "^4.0.0",
     "remark-gfm": "^4.0.1",
@@ -26,16 +24,9 @@
     "web-vitals": "^2.1.4"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
-  },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ]
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
   },
   "browserslist": {
     "production": [
@@ -50,6 +41,7 @@
     ]
   },
   "devDependencies": {
-    "http-proxy-middleware": "^3.0.5"
+    "@vitejs/plugin-react": "^4.3.1",
+    "vite": "^5.4.0"
   }
 }

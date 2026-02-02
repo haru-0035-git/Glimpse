@@ -65,6 +65,7 @@ public class SecurityConfig {
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(Arrays.asList(
+    "http://localhost:80",
     "http://localhost:3001",
     "https://glimpse.haruverse.cc"
 ));
