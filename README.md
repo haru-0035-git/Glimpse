@@ -1,6 +1,133 @@
 # Glimpse
 
-個人 Wiki プロジェクト
+個人 Wiki / ブログプロジェクト（React + Spring Boot + MySQL）
+
+---
+
+## プロジェクト概要
+
+Glimpse は「閲覧は誰でも、管理は ADMIN のみ」を基本にしたシンプルなブログ基盤です。  
+ローカル開発は Docker Compose を前提に、`frontend`（Nginx 同梱）・`backend`・`db` の 3 サービスで動かします。
+
+---
+
+## 技術スタック
+
+- フロントエンド: React + TypeScript + Vite
+- Web サーバー: Nginx（SPA 配信 + `/api` のリバースプロキシ）
+- バックエンド: Spring Boot 3.5 (Java 21)
+- DB: MySQL 8.0
+- コンテナ: Docker / Docker Compose
+- CI/CD: GitHub Actions + GHCR
+
+---
+
+## 全体構成（ローカル / 本番の基本形）
+
+```mermaid
+flowchart LR
+    U["Browser"] --> N["frontend (Nginx :80)"]
+    N -->|"GET / (SPA)"| U
+    N -->|"/api/*"| B["backend (Spring Boot :8080)"]
+    B --> D["db (MySQL :3306)"]
+```
+
+- ブラウザは `frontend` コンテナにアクセス
+- Nginx が静的ファイルを返し、`/api/*` を `backend:8080` に中継
+- バックエンドは MySQL に接続
+
+---
+
+## ローカル開発構成（Docker Compose 前提）
+
+対象ファイル: `docker-compose.dev.yml`
+
+### 起動
+
+```bash
+docker compose -f docker-compose.dev.yml up -d --build
+```
+
+### 停止
+
+```bash
+docker compose -f docker-compose.dev.yml down
+```
+
+### よく使う確認コマンド
+
+```bash
+docker compose -f docker-compose.dev.yml ps
+docker compose -f docker-compose.dev.yml logs -f backend
+docker compose -f docker-compose.dev.yml logs -f frontend
+```
+
+### ローカル接続先
+
+- フロントエンド: `http://localhost`（host `80 -> container 80`）
+- バックエンド API: `http://localhost:8080`
+- MySQL: `localhost:3308`（host `3308 -> container 3306`）
+
+### 環境変数（`.env`）
+
+`docker-compose.dev.yml` では主に以下を利用します。
+
+- MySQL: `MYSQL_DATABASE`, `MYSQL_USER`, `MYSQL_PASSWORD`, `MYSQL_ROOT_PASSWORD`
+- Backend DB 接続: `SPRING_DATASOURCE_URL`, `SPRING_DATASOURCE_USERNAME`, `SPRING_DATASOURCE_PASSWORD`
+- 初期管理者: `APP_ADMIN_USERNAME`, `APP_ADMIN_PASSWORD`
+- JWT: `JWT_SECRET`, `JWT_EXPIRATION_MS`
+
+補足: フロントをコンテナではなく手元で起動する場合は、`frontend` ディレクトリで `npm run dev`（既定 `:3001`）を使用します。Vite の `/api` プロキシ先は `http://localhost:8080` です。
+
+---
+
+## CI/CD フロー（GitHub Actions / GHCR / デプロイ）
+
+対象ファイル: `.github/workflows/publish.yml`
+
+```mermaid
+flowchart LR
+    A["Push to main"] --> B["paths-filter で変更検知"]
+    B -->|"backend変更あり"| C["backend image build (linux/arm64)"]
+    B -->|"frontend変更あり"| D["frontend image build (linux/arm64)"]
+    C --> E["Push to GHCR"]
+    D --> E
+    E --> F["本番サーバーで pull / 再起動（手動）"]
+```
+
+- `main` ブランチへの push でワークフロー起動
+- `dorny/paths-filter` で `backend/**` / `frontend/**` の変更を判定
+- 変更があるサービスのみ Docker イメージを build & push
+- レジストリは GHCR（`ghcr.io/haru-0035-git/...`）
+- タグは `latest` と `commit SHA` の 2 系統
+- 現在の workflow には「本番反映（サーバーへ自動デプロイ）」は含まれておらず、GHCR へ push 後に本番側で `docker compose pull` + 再起動を行う運用
+
+---
+
+## 本番環境の概要
+
+### 基本
+
+- コンテナ構成自体はローカルと同じ（`frontend` / `backend` / `db`）
+- 公開エントリは Nginx（`frontend`）を起点にし、API は内部で `backend` へ中継
+- シークレット（JWT・DB パスワード等）は `.env` をそのままコミットせず、環境ごとに安全に注入
+
+### Cloudflare Tunnel を使う場合（任意）
+
+Cloudflare Tunnel を使う場合の典型フローは以下です。
+
+```mermaid
+flowchart LR
+    U["User"] --> C["Cloudflare Edge / DNS"]
+    C --> T["cloudflared (tunnel client on server)"]
+    T --> N["frontend (Nginx :80)"]
+    N -->|"/api/*"| B["backend :8080"]
+    B --> D["MySQL :3306"]
+```
+
+- 公開トラフィックは Cloudflare 側で受け、Tunnel 経由でサーバー内の Nginx に到達
+- TLS 終端を Cloudflare 側で持たせる運用にしやすい
+- 必要に応じて Cloudflare Access を併用し、`/admin` や管理系導線の追加保護を行う
 
 ---
 
@@ -27,9 +154,6 @@
 - [ ] 認証機能（ログイン・ログアウト）
 - [ ] ダッシュボード（記事の管理画面トップ）
 - [ ] 記事の作成 (CRUD)
-  - リッチな Markdown エディタで記事を執筆
-  - 公開・下書きステータス管理
-  - カテゴリやタグの設定
 - [ ] 記事の更新・削除 (CRUD)
 - [ ] (Nice-to-have) 画像アップロード機能（記事に画像を簡単に挿入）
 
@@ -40,19 +164,15 @@
 ### セキュリティの強化
 
 - **認証と認可 (JWT & RBAC)**:
-  - ユーザーは `/api/authenticate` エンドポイントにユーザー名とパスワードを送信して認証を行います。
-  - 認証成功後、JWT (JSON Web Token) が発行されます。このトークンにはユーザーのロール情報（例: `ROLE_USER`, `ROLE_ADMIN`）が含まれます。
-  - 以降のリクエストでは、この JWT を `Authorization: Bearer <token>` ヘッダーに含めて送信することで、API へのアクセスが許可されます。
-  - ロールベースアクセス制御 (RBAC) により、管理者 (ADMIN) だけが記事の投稿・編集・削除を行えるよう、Spring Security で厳密に設定されています。
-  - ユーザーの役割（ロール）は、GUEST, ADMIN, (将来的に) USER を想定しています。
-  - **JWT シークレットキーの管理**: 現在、`application.properties` には JWT シークレットキーが設定されていません。本番環境では、環境変数などを用いて安全に管理されるべきです。
-- **パスワードの保護**: パスワードは必ずハッシュ化（BCrypt を使用）して保存します。
-- **XSS 対策**: コメント機能追加時など、入力値のサニタイズを必須とします。
+  - `/api/authenticate` でログインし JWT を発行
+  - `Authorization: Bearer <token>` ヘッダーで API 認可
+  - Spring Security で管理者権限を制御
+- **パスワードの保護**: BCrypt でハッシュ化
+- **XSS 対策**: 入力値サニタイズを必須化
 
 ### SEO（検索エンジン最適化）
 
-- Google などの検索結果に表示されやすくする工夫
-- React の SPA は SEO が弱い場合があるため、まずは react-helmet などで <title> や <meta> を設定
+- React SPA のため、`<title>` / `<meta>` の適切な設定を優先
 
 ---
 
@@ -73,5 +193,3 @@
 
 - 誰でも見られる記事の一覧表示
 - 誰でも見られる記事の詳細表示
-
-scp -r -i "haruverse-key.pem" build ec2-user@98.86.222.45:~
