@@ -36,6 +36,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers("/api/authenticate").permitAll()
+                        .requestMatchers("/api/logout").permitAll()
                         .requestMatchers("/api/register").denyAll()
                         .requestMatchers("/api/users/**").hasRole("ADMIN")
                         .requestMatchers("/api/me").authenticated()
@@ -65,10 +66,11 @@ public class SecurityConfig {
     CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         configuration.setAllowedOrigins(Arrays.asList(
-    "http://localhost:80",
-    "http://localhost:3001",
-    "https://glimpse.haruverse.cc"
-));
+                "http://localhost",
+                "http://localhost:80",
+                "http://localhost:3001",
+                "https://glimpse.haruverse.cc"
+        ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type"));
         configuration.setAllowCredentials(true);

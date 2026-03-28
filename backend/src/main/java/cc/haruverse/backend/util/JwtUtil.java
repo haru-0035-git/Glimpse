@@ -28,8 +28,6 @@ public class JwtUtil {
             @Value("${jwt.secret}") String secret,
             @Value("${jwt.expiration-ms:1800000}") long expirationMs
     ) {
-        // HS256 は 256bit(32bytes)以上が必要
-        // base64文字列でもOK。とにかく十分長いランダム文字列を環境変数で渡す
         this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         this.expirationMs = expirationMs;
     }
@@ -43,7 +41,7 @@ public class JwtUtil {
     }
 
     public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
-        final Claims claims = extractAllClaims(token);
+        Claims claims = extractAllClaims(token);
         return claimsResolver.apply(claims);
     }
 
@@ -80,11 +78,15 @@ public class JwtUtil {
     }
 
     public boolean validateToken(String token, UserDetails userDetails) {
-        final String username = extractUsername(token);
-        return (username.equals(userDetails.getUsername()) && !isTokenExpired(token));
+        String username = extractUsername(token);
+        return username.equals(userDetails.getUsername()) && !isTokenExpired(token);
     }
 
     public String extractRoles(String token) {
         return extractClaim(token, claims -> claims.get("roles", String.class));
+    }
+
+    public long getExpirationMs() {
+        return expirationMs;
     }
 }

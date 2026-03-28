@@ -5,7 +5,6 @@ import { Article } from "../types";
 import ReactMarkdown from "react-markdown";
 import remarkBreaks from "remark-breaks";
 import remarkGfm from "remark-gfm";
-import rehypeRaw from "rehype-raw";
 import "./ArticleDetail.css";
 
 interface ArticleDetailProps {
@@ -69,10 +68,7 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({
         </div>
       </div>
       <div className="article-content">
-        <ReactMarkdown
-          remarkPlugins={[remarkBreaks, remarkGfm]}
-          rehypePlugins={[rehypeRaw]}
-        >
+        <ReactMarkdown remarkPlugins={[remarkBreaks, remarkGfm]}>
           {article.content}
         </ReactMarkdown>
       </div>
@@ -85,7 +81,7 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({
             onClick={() => navigate("/admin")}
             className="btn btn-secondary"
           >
-            管理者ページに戻る
+            管理ページに戻る
           </button>
         </div>
       )}

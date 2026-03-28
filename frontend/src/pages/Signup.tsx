@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { Link, useNavigate } from "react-router-dom";
+import { notifyAuthStateChanged } from "../auth";
 import "./Login.css";
 
 const Signup: React.FC = () => {
@@ -20,24 +21,20 @@ const Signup: React.FC = () => {
     }
 
     try {
-      const response = await axios.post("/api/register", {
+      await axios.post("/api/register", {
         username,
         password,
       });
 
-      const jwtToken = response.data.jwt;
-
-      localStorage.setItem("jwtToken", jwtToken);
-      axios.defaults.headers.common["Authorization"] = `Bearer ${jwtToken}`;
-
+      notifyAuthStateChanged();
       navigate("/admin");
     } catch (err) {
       console.error("Signup failed:", err);
       if (axios.isAxiosError(err) && err.response) {
         const message = (err.response.data as { message?: string })?.message;
-        setError(message || "新規登録に失敗しました。入力内容をご確認ください。");
+        setError(message || "新規登録に失敗しました。入力内容を確認してください。");
       } else {
-        setError("新規登録に失敗しました。時間をおいて再度お試しください。");
+        setError("新規登録に失敗しました。時間をおいて再試行してください。");
       }
     }
   };
@@ -68,7 +65,7 @@ const Signup: React.FC = () => {
           />
         </div>
         <div className="form-group">
-          <label htmlFor="confirmPassword">パスワード（確認）</label>
+          <label htmlFor="confirmPassword">パスワード(確認)</label>
           <input
             type="password"
             id="confirmPassword"

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { notifyAuthStateChanged } from "../auth";
 import "./Login.css";
 
 const Login: React.FC = () => {
@@ -14,16 +15,12 @@ const Login: React.FC = () => {
     setError(null);
 
     try {
-      const response = await axios.post("/api/authenticate", {
+      await axios.post("/api/authenticate", {
         username,
         password,
       });
 
-      const jwtToken = response.data.jwt;
-      localStorage.setItem("jwtToken", jwtToken);
-      axios.defaults.headers.common["Authorization"] = `Bearer ${jwtToken}`;
-      window.dispatchEvent(new Event("jwt-token-update"));
-
+      notifyAuthStateChanged();
       navigate("/admin");
     } catch (err) {
       console.error("Login failed:", err);
@@ -31,7 +28,7 @@ const Login: React.FC = () => {
         const message = (err.response.data as { message?: string })?.message;
         setError(message || "ログインに失敗しました。ユーザー名とパスワードを確認してください。");
       } else {
-        setError("ログインに失敗しました。時間をおいて再度お試しください。");
+        setError("ログインに失敗しました。時間をおいて再試行してください。");
       }
     }
   };

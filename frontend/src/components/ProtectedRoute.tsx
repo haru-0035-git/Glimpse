@@ -1,38 +1,39 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
-import { jwtDecode } from 'jwt-decode';
+import { fetchCurrentUser } from '../auth';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
 }
 
-type Decoded = { exp?: number; roles?: string };
+type AuthStatus = 'loading' | 'allowed' | 'denied';
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const token = localStorage.getItem('jwtToken');
+  const [status, setStatus] = useState<AuthStatus>('loading');
 
-  if (!token) {
-    return <Navigate to="/login" replace />;
+  useEffect(() => {
+    let active = true;
+
+    const verify = async () => {
+      const user = await fetchCurrentUser();
+      if (!active) {
+        return;
+      }
+      setStatus(user?.admin ? 'allowed' : 'denied');
+    };
+
+    void verify();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  if (status === 'loading') {
+    return <div>Loading...</div>;
   }
 
-  try {
-    const decodedToken: Decoded = jwtDecode(token);
-    const currentTime = Date.now() / 1000;
-
-    if (!decodedToken.exp || decodedToken.exp < currentTime) {
-      localStorage.removeItem('jwtToken');
-      return <Navigate to="/login" replace />;
-    }
-
-    const roles = decodedToken.roles || '';
-    const isAdmin = roles.split(',').includes('ROLE_ADMIN');
-    if (!isAdmin) {
-      localStorage.removeItem('jwtToken');
-      return <Navigate to="/login" replace />;
-    }
-  } catch (error) {
-    console.error("Failed to decode JWT:", error);
-    localStorage.removeItem('jwtToken');
+  if (status === 'denied') {
     return <Navigate to="/login" replace />;
   }
 
