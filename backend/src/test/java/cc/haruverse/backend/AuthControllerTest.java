@@ -1,0 +1,199 @@
+package cc.haruverse.backend;
+
+import cc.haruverse.backend.entity.User;
+import cc.haruverse.backend.model.AuthenticationRequest;
+import cc.haruverse.backend.repository.UserRepository;
+import cc.haruverse.backend.security.LoginAttemptService;
+import cc.haruverse.backend.service.UserDetailsServiceImpl;
+import cc.haruverse.backend.util.JwtUtil;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.MediaType;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+@ExtendWith(MockitoExtension.class)
+class AuthControllerTest {
+
+    @Mock
+    private AuthenticationManager authenticationManager;
+
+    @Mock
+    private UserDetailsServiceImpl userDetailsService;
+
+    @Mock
+    private JwtUtil jwtUtil;
+
+    @Mock
+    private UserRepository userRepository;
+
+    @Mock
+    private LoginAttemptService loginAttemptService;
+
+    private MockMvc mockMvc;
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
+    @BeforeEach
+    void setUp() {
+        AuthController controller = new AuthController();
+        ReflectionTestUtils.setField(controller, "authenticationManager", authenticationManager);
+        ReflectionTestUtils.setField(controller, "userDetailsService", userDetailsService);
+        ReflectionTestUtils.setField(controller, "jwtUtil", jwtUtil);
+        ReflectionTestUtils.setField(controller, "userRepository", userRepository);
+        ReflectionTestUtils.setField(controller, "loginAttemptService", loginAttemptService);
+        ReflectionTestUtils.setField(controller, "authCookieName", "GLIMPSE_AUTH");
+        ReflectionTestUtils.setField(controller, "authCookieSecure", false);
+        ReflectionTestUtils.setField(controller, "authCookieSameSite", "Lax");
+        mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+    }
+
+    @org.junit.jupiter.api.AfterEach
+    void tearDown() {
+        SecurityContextHolder.clearContext();
+    }
+
+    @Test
+    void authenticateSetsHttpOnlyCookieOnSuccess() throws Exception {
+        AuthenticationRequest request = new AuthenticationRequest();
+        request.setUsername("admin");
+        request.setPassword("secret");
+
+        UserDetails userDetails = new org.springframework.security.core.userdetails.User(
+                "admin",
+                "secret",
+                List.of(new SimpleGrantedAuthority("ROLE_ADMIN"))
+        );
+
+        when(loginAttemptService.isBlocked("admin", "127.0.0.1")).thenReturn(false);
+        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
+                .thenReturn(org.mockito.Mockito.mock(Authentication.class));
+        when(userDetailsService.loadUserByUsername("admin")).thenReturn(userDetails);
+        when(jwtUtil.generateToken(userDetails)).thenReturn("signed.jwt.token");
+        when(jwtUtil.getExpirationMs()).thenReturn(900_000L);
+
+        mockMvc.perform(post("/api/authenticate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Authenticated"))
+                .andExpect(header().string("Set-Cookie", org.hamcrest.Matchers.containsString("GLIMPSE_AUTH=signed.jwt.token")))
+                .andExpect(header().string("Set-Cookie", org.hamcrest.Matchers.containsString("HttpOnly")))
+                .andExpect(header().string("Set-Cookie", org.hamcrest.Matchers.containsString("SameSite=Lax")))
+                .andExpect(header().string("Set-Cookie", org.hamcrest.Matchers.containsString("Max-Age=900")));
+
+        verify(loginAttemptService).recordSuccess("admin", "127.0.0.1");
+    }
+
+    @Test
+    void authenticateReturnsTooManyRequestsWhenBlocked() throws Exception {
+        AuthenticationRequest request = new AuthenticationRequest();
+        request.setUsername("admin");
+        request.setPassword("secret");
+
+        when(loginAttemptService.isBlocked("admin", "127.0.0.1")).thenReturn(true);
+
+        mockMvc.perform(post("/api/authenticate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isTooManyRequests())
+                .andExpect(jsonPath("$.message").value("Too many failed login attempts. Please try again later."));
+
+        verify(authenticationManager, never()).authenticate(any());
+    }
+
+    @Test
+    void authenticateReturnsUnauthorizedAndRecordsFailure() throws Exception {
+        AuthenticationRequest request = new AuthenticationRequest();
+        request.setUsername("admin");
+        request.setPassword("wrong");
+
+        when(loginAttemptService.isBlocked("admin", "127.0.0.1")).thenReturn(false);
+        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
+                .thenThrow(new BadCredentialsException("bad credentials"));
+
+        mockMvc.perform(post("/api/authenticate")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.message").value("ユーザー名またはパスワードが正しくありません。"));
+
+        verify(loginAttemptService).recordFailure("admin", "127.0.0.1");
+    }
+
+    @Test
+    void logoutClearsCookie() throws Exception {
+        mockMvc.perform(post("/api/logout"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Logged out"))
+                .andExpect(header().string("Set-Cookie", org.hamcrest.Matchers.containsString("GLIMPSE_AUTH=")))
+                .andExpect(header().string("Set-Cookie", org.hamcrest.Matchers.containsString("Max-Age=0")));
+    }
+
+    @Test
+    void meReturnsCurrentUser() throws Exception {
+        User user = new User();
+        UUID id = UUID.randomUUID();
+        user.setId(id);
+        user.setUsername("admin");
+        user.setAdmin(true);
+
+        when(userRepository.findByUsername("admin")).thenReturn(Optional.of(user));
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken("admin", null, List.of())
+        );
+
+        mockMvc.perform(get("/api/me"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(id.toString()))
+                .andExpect(jsonPath("$.username").value("admin"))
+                .andExpect(jsonPath("$.admin").value(true));
+    }
+
+    @Test
+    void deleteUserRejectsSelfDeletion() throws Exception {
+        User user = new User();
+        UUID id = UUID.randomUUID();
+        user.setId(id);
+        user.setUsername("admin");
+        user.setAdmin(true);
+
+        when(userRepository.findByUsername("admin")).thenReturn(Optional.of(user));
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken("admin", null, List.of())
+        );
+
+        mockMvc.perform(delete("/api/users/{id}", id))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Administrators cannot delete themselves."));
+
+        verify(userRepository, never()).delete(any(User.class));
+    }
+}

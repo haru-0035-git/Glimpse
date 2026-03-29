@@ -2,14 +2,20 @@ package cc.haruverse.backend;
 
 import cc.haruverse.backend.entity.User;
 import cc.haruverse.backend.model.AuthenticationRequest;
-import cc.haruverse.backend.model.AuthenticationResponse;
 import cc.haruverse.backend.model.RegisterRequest;
 import cc.haruverse.backend.model.UserInfoDto;
 import cc.haruverse.backend.repository.UserRepository;
+import cc.haruverse.backend.security.LoginAttemptService;
 import cc.haruverse.backend.service.UserDetailsServiceImpl;
 import cc.haruverse.backend.util.JwtUtil;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -18,15 +24,14 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
-import jakarta.validation.Valid;
-import java.util.Map;
-import java.util.stream.Collectors;
+import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api")
-@CrossOrigin(origins = "http://localhost:3001") // Adjust as per your frontend URL
 public class AuthController {
 
     @Autowired
@@ -41,20 +46,70 @@ public class AuthController {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private LoginAttemptService loginAttemptService;
+
+    @Value("${app.auth.cookie-name:GLIMPSE_AUTH}")
+    private String authCookieName;
+
+    @Value("${app.auth.cookie-secure:true}")
+    private boolean authCookieSecure;
+
+    @Value("${app.auth.cookie-same-site:Lax}")
+    private String authCookieSameSite;
+
     @PostMapping("/authenticate")
-    public ResponseEntity<?> createAuthenticationToken(@RequestBody AuthenticationRequest authenticationRequest) throws Exception {
-        try {
-            authenticationManager.authenticate(
-                    new UsernamePasswordAuthenticationToken(authenticationRequest.getUsername(), authenticationRequest.getPassword())
-            );
-        } catch (BadCredentialsException e) {
-            throw new Exception("Incorrect username or password", e);
+    public ResponseEntity<?> createAuthenticationToken(
+            @RequestBody AuthenticationRequest authenticationRequest,
+            HttpServletRequest request,
+            HttpServletResponse response
+    ) {
+        String username = authenticationRequest.getUsername();
+        String clientIp = extractClientIp(request);
+
+        if (loginAttemptService.isBlocked(username, clientIp)) {
+            return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                    .body(Map.of("message", "Too many failed login attempts. Please try again later."));
         }
 
-        final UserDetails userDetails = userDetailsService.loadUserByUsername(authenticationRequest.getUsername());
-        final String jwt = jwtUtil.generateToken(userDetails);
+        try {
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(username, authenticationRequest.getPassword())
+            );
+        } catch (BadCredentialsException e) {
+            loginAttemptService.recordFailure(username, clientIp);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("message", "ユーザー名またはパスワードが正しくありません。"));
+        }
 
-        return ResponseEntity.ok(new AuthenticationResponse(jwt));
+        loginAttemptService.recordSuccess(username, clientIp);
+        UserDetails userDetails = userDetailsService.loadUserByUsername(username);
+        String jwt = jwtUtil.generateToken(userDetails);
+
+        ResponseCookie authCookie = ResponseCookie.from(authCookieName, jwt)
+                .httpOnly(true)
+                .secure(authCookieSecure)
+                .sameSite(authCookieSameSite)
+                .path("/")
+                .maxAge(Duration.ofMillis(jwtUtil.getExpirationMs()))
+                .build();
+        response.addHeader(HttpHeaders.SET_COOKIE, authCookie.toString());
+
+        return ResponseEntity.ok(Map.of("message", "Authenticated"));
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(HttpServletResponse response) {
+        ResponseCookie clearCookie = ResponseCookie.from(authCookieName, "")
+                .httpOnly(true)
+                .secure(authCookieSecure)
+                .sameSite(authCookieSameSite)
+                .path("/")
+                .maxAge(0)
+                .build();
+        response.addHeader(HttpHeaders.SET_COOKIE, clearCookie.toString());
+        SecurityContextHolder.clearContext();
+        return ResponseEntity.ok(Map.of("message", "Logged out"));
     }
 
     @PostMapping("/register")
@@ -106,5 +161,13 @@ public class AuthController {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         return userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found"));
+    }
+
+    private String extractClientIp(HttpServletRequest request) {
+        String forwardedFor = request.getHeader("X-Forwarded-For");
+        if (forwardedFor == null || forwardedFor.isBlank()) {
+            return request.getRemoteAddr();
+        }
+        return forwardedFor.split(",")[0].trim();
     }
 }

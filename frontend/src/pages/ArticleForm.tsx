@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
+import { UserInfo } from "../types";
 import "./ArticleForm.css";
 
 const ArticleForm: React.FC = () => {
@@ -13,26 +14,40 @@ const ArticleForm: React.FC = () => {
   const isEditing = Boolean(id);
 
   useEffect(() => {
-    const token = localStorage.getItem("jwtToken");
-    if (!token) {
-      navigate("/login");
-      return;
-    }
-    axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+    let active = true;
 
-    if (isEditing) {
-      axios
-        .get(`/api/articles/${id}`)
-        .then((response) => {
+    const load = async () => {
+      try {
+        const meRes = await axios.get<UserInfo>("/api/me");
+        if (!meRes.data.admin) {
+          navigate("/login");
+          return;
+        }
+
+        if (isEditing) {
+          const response = await axios.get(`/api/articles/${id}`);
+          if (!active) {
+            return;
+          }
           setTitle(response.data.title);
           setContent(response.data.content);
           setTags(response.data.tags ? response.data.tags.join(", ") : "");
-        })
-        .catch((err) => {
-          console.error(`Error fetching article ${id}:`, err);
-          setError("記事の読み込みに失敗しました。");
-        });
-    }
+        }
+      } catch (err) {
+        console.error(`Error preparing article form ${id ?? "new"}:`, err);
+        if (axios.isAxiosError(err) && (err.response?.status === 401 || err.response?.status === 403)) {
+          navigate("/login");
+          return;
+        }
+        setError("記事フォームの読み込みに失敗しました。");
+      }
+    };
+
+    void load();
+
+    return () => {
+      active = false;
+    };
   }, [id, isEditing, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {

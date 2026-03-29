@@ -3,9 +3,6 @@ import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { Article, UserInfo } from "../types";
 import "./Admin.css";
-import { jwtDecode } from "jwt-decode";
-
-type DecodedToken = { roles?: string; exp?: number };
 
 const Admin: React.FC = () => {
   const navigate = useNavigate();
@@ -15,39 +12,46 @@ const Admin: React.FC = () => {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    const token = localStorage.getItem("jwtToken");
-    if (!token) {
-      navigate("/login");
-      return;
-    }
-    axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-
-    const decoded = jwtDecode<DecodedToken>(token);
-    const roles = decoded.roles || "";
-    const isAdminRole = roles.split(",").includes("ROLE_ADMIN");
-    if (!isAdminRole) {
-      localStorage.removeItem("jwtToken");
-      navigate("/login");
-      return;
-    }
+    let active = true;
 
     const load = async () => {
       try {
         const meRes = await axios.get<UserInfo>("/api/me");
+        if (!meRes.data.admin) {
+          navigate("/login");
+          return;
+        }
+
+        if (!active) {
+          return;
+        }
         setCurrentUserId(meRes.data.id);
 
-        const articleRes = await axios.get<Article[]>("/api/articles");
-        setArticles(articleRes.data);
+        const [articleRes, userRes] = await Promise.all([
+          axios.get<Article[]>("/api/articles"),
+          axios.get<UserInfo[]>("/api/users"),
+        ]);
 
-        const userRes = await axios.get<UserInfo[]>("/api/users");
+        if (!active) {
+          return;
+        }
+        setArticles(articleRes.data);
         setUsers(userRes.data);
       } catch (err) {
         console.error("Failed to load dashboard:", err);
-        setError("ダッシュボードの読み込みに失敗しました。時間をおいて再度お試しください。");
+        if (axios.isAxiosError(err) && (err.response?.status === 401 || err.response?.status === 403)) {
+          navigate("/login");
+          return;
+        }
+        setError("ダッシュボードの読み込みに失敗しました。時間をおいて再試行してください。");
       }
     };
 
-    load();
+    void load();
+
+    return () => {
+      active = false;
+    };
   }, [navigate]);
 
   const handleDeleteArticle = async (id: number) => {
@@ -77,7 +81,7 @@ const Admin: React.FC = () => {
       <div className="admin-header">
         <h1>管理者ダッシュボード</h1>
         <Link to="/admin/new" className="btn btn-primary">
-          新規記事
+          新規記事作成
         </Link>
       </div>
       {error && <p className="error">{error}</p>}
@@ -87,7 +91,7 @@ const Admin: React.FC = () => {
         <thead>
           <tr>
             <th>タイトル</th>
-            <th>作成日時</th>
+            <th>投稿日</th>
             <th>操作</th>
           </tr>
         </thead>

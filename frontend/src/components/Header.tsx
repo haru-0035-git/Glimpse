@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { AUTH_STATE_EVENT, fetchCurrentUser, logout } from '../auth';
 import './Header.css';
 
 const Header: React.FC = () => {
@@ -8,30 +8,31 @@ const Header: React.FC = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const navigate = useNavigate();
 
-  const updateAuthState = useCallback(() => {
-    setIsLoggedIn(!!localStorage.getItem('jwtToken'));
+  const updateAuthState = useCallback(async () => {
+    const user = await fetchCurrentUser();
+    setIsLoggedIn(Boolean(user));
   }, []);
 
   useEffect(() => {
     updateAuthState();
 
-    const handleStorageChange = () => updateAuthState();
-    const handleCustomTokenEvent = () => updateAuthState();
+    const handleAuthEvent = () => {
+      void updateAuthState();
+    };
 
-    window.addEventListener('storage', handleStorageChange);
-    window.addEventListener('jwt-token-update', handleCustomTokenEvent);
+    window.addEventListener(AUTH_STATE_EVENT, handleAuthEvent);
+    window.addEventListener('focus', handleAuthEvent);
+
     return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('jwt-token-update', handleCustomTokenEvent);
+      window.removeEventListener(AUTH_STATE_EVENT, handleAuthEvent);
+      window.removeEventListener('focus', handleAuthEvent);
     };
   }, [updateAuthState]);
 
-  const handleLogout = useCallback(() => {
-    localStorage.removeItem('jwtToken');
-    delete axios.defaults.headers.common['Authorization'];
+  const handleLogout = useCallback(async () => {
+    await logout();
     setIsLoggedIn(false);
     setIsMenuOpen(false);
-    window.dispatchEvent(new Event('jwt-token-update'));
     navigate('/');
   }, [navigate]);
 
