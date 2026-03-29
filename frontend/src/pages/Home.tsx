@@ -12,11 +12,21 @@ const Home: React.FC = () => {
     axios
       .get("/api/articles")
       .then((response) => {
-        setArticles(response.data);
+        const data = response.data;
+
+        if (!Array.isArray(data)) {
+          console.error("Unexpected response for /api/articles:", data);
+          setError("記事データの形式が正しくありません。");
+          setArticles([]);
+          return;
+        }
+
+        setArticles(data);
       })
       .catch((err) => {
         console.error("Error fetching articles:", err);
         setError("記事の読み込みに失敗しました。");
+        setArticles([]);
       });
   }, []);
 
@@ -43,7 +53,9 @@ const Home: React.FC = () => {
                   {getFirstLine(article.content)}
                 </p>
                 <div className="article-meta">
-                  <span>{new Date(article.createdAt).toLocaleDateString()}</span>
+                  <span>
+                    {new Date(article.createdAt).toLocaleDateString()}
+                  </span>
                   <div className="tags-container">
                     {article.tags &&
                       article.tags.slice(0, 2).map((tag) => (
