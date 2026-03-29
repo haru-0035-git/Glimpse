@@ -79,7 +79,7 @@ public class AuthController {
         } catch (BadCredentialsException e) {
             loginAttemptService.recordFailure(username, clientIp);
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Map.of("message", "Incorrect username or password"));
+                    .body(Map.of("message", "ユーザー名またはパスワードが正しくありません。"));
         }
 
         loginAttemptService.recordSuccess(username, clientIp);

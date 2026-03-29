@@ -29,7 +29,6 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -144,7 +143,7 @@ class AuthControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isUnauthorized())
-                .andExpect(jsonPath("$.message").value("Incorrect username or password"));
+                .andExpect(jsonPath("$.message").value("ユーザー名またはパスワードが正しくありません。"));
 
         verify(loginAttemptService).recordFailure("admin", "127.0.0.1");
     }
