@@ -73,6 +73,7 @@ public class ArticleController {
         User currentUser = getCurrentUser();
         ensureAdmin(currentUser);
         article.setAuthorId(currentUser.getId());
+        article.setThumbnailUrl(normalizeUploadUrl(article.getThumbnailUrl()));
 
         Set<Tag> managedTags = new HashSet<>();
         if (article.getTags() != null) {
@@ -103,6 +104,7 @@ public class ArticleController {
 
             article.setTitle(articleDetails.getTitle());
             article.setContent(articleDetails.getContent());
+            article.setThumbnailUrl(normalizeUploadUrl(articleDetails.getThumbnailUrl()));
 
             Set<Tag> managedTags = new HashSet<>();
             if (articleDetails.getTags() != null) {
@@ -137,5 +139,17 @@ public class ArticleController {
 
         articleRepository.deleteById(id);
         return ResponseEntity.noContent().build();
+    }
+
+    private String normalizeUploadUrl(String uploadUrl) {
+        if (uploadUrl == null || uploadUrl.isBlank()) {
+            return null;
+        }
+
+        String trimmed = uploadUrl.trim();
+        if (!trimmed.startsWith("/uploads/")) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid upload URL");
+        }
+        return trimmed;
     }
 }

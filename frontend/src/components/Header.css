@@ -2,6 +2,8 @@
   background-color: #4c6cb3;
   padding: 0.5rem 1rem;
   color: white;
+  position: relative;
+  z-index: 10000;
 }
 
 .header .container {
@@ -31,6 +33,8 @@
   border-radius: 6px;
   cursor: pointer;
   padding: 6px;
+  position: relative;
+  z-index: 10002;
 }
 
 .header-menu-toggle span {
@@ -48,6 +52,7 @@
   position: absolute;
   top: calc(100% + 10px);
   right: 0;
+  z-index: 10001;
   background: #f7fff2;
   border: 1px solid #d6e9d1;
   flex-direction: column;
@@ -120,4 +125,5 @@
 
 .header .container {
   position: relative;
+  z-index: 10000;
 }

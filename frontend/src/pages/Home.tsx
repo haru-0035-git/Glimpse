@@ -30,44 +30,51 @@ const Home: React.FC = () => {
       });
   }, []);
 
-  const getFirstLine = (content: string) => {
-    if (!content) return "";
-    return content.split("\n")[0];
-  };
-
   return (
     <div className="home-page">
       <div className="home-container">
         <h1 className="home-title">記事一覧</h1>
         {error && <p className="error">{error}</p>}
         <div className="articles-list">
-          {articles.map((article) => (
-            <Link
-              to={`/articles/${article.id}`}
-              key={article.id}
-              className="article-item-link"
-            >
-              <div className="article-item">
-                <h2>{article.title}</h2>
-                <p className="article-content-preview">
-                  {getFirstLine(article.content)}
-                </p>
-                <div className="article-meta">
-                  <span>
-                    {new Date(article.createdAt).toLocaleDateString()}
-                  </span>
-                  <div className="tags-container">
-                    {article.tags &&
-                      article.tags.slice(0, 2).map((tag) => (
-                        <span key={tag} className="tag">
-                          {tag}
-                        </span>
-                      ))}
+          {articles.map((article) => {
+            const tags = article.tags?.filter(Boolean) ?? [];
+
+            return (
+              <Link
+                to={`/articles/${article.id}`}
+                key={article.id}
+                className="article-item-link"
+              >
+                <div className={article.thumbnailUrl ? "article-item has-thumbnail" : "article-item"}>
+                  {article.thumbnailUrl && (
+                    <img
+                      className="article-thumbnail"
+                      src={article.thumbnailUrl}
+                      alt=""
+                      loading="lazy"
+                    />
+                  )}
+                  <div className="article-item-body">
+                    <h2>{article.title}</h2>
+                    <div className="article-card-footer">
+                      <span className="article-date">
+                        {new Date(article.createdAt).toLocaleDateString("ja-JP")}
+                      </span>
+                      {tags.length > 0 && (
+                        <div className="tags-container article-tags">
+                          {tags.map((tag) => (
+                            <span key={tag} className="tag">
+                              {tag}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            </Link>
-          ))}
+              </Link>
+            );
+          })}
         </div>
       </div>
     </div>

@@ -10,6 +10,7 @@ public class ArticleDto {
     private Long id;
     private String title;
     private String content;
+    private String thumbnailUrl;
     private List<String> tags;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -20,6 +21,7 @@ public class ArticleDto {
         this.id = article.getId();
         this.title = article.getTitle();
         this.content = article.getContent();
+        this.thumbnailUrl = article.getThumbnailUrl();
         this.tags = article.getTags().stream()
                              .map(tag -> tag.getName())
                              .collect(Collectors.toList());
@@ -39,6 +41,10 @@ public class ArticleDto {
 
     public String getContent() {
         return content;
+    }
+
+    public String getThumbnailUrl() {
+        return thumbnailUrl;
     }
 
     public List<String> getTags() {

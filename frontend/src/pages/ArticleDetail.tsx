@@ -11,6 +11,74 @@ interface ArticleDetailProps {
   showAdminButtons?: boolean;
 }
 
+type ImageAlign = "left" | "center" | "right";
+
+const isImageAlign = (value: string): value is ImageAlign =>
+  value === "left" || value === "center" || value === "right";
+
+const parseImageAlt = (alt?: string) => {
+  const [label = "", ...options] = (alt ?? "").split("|");
+  const parsed: {
+    alt: string;
+    width?: number;
+    align?: ImageAlign;
+    layout?: "row";
+  } = {
+    alt: label,
+  };
+
+  options.forEach((option) => {
+    const [key, value] = option.split("=");
+    if (key === "width" && value) {
+      const width = Number(value);
+      if (Number.isFinite(width)) {
+        parsed.width = width;
+      }
+    }
+    if (key === "align" && value && isImageAlign(value)) {
+      parsed.align = value;
+    }
+    if (key === "layout" && value === "row") {
+      parsed.layout = "row";
+    }
+  });
+
+  return parsed;
+};
+
+const imageLinePattern = /^!\[([^\]]*)\]\(([^)]+)\)$/;
+
+const isRowImageLine = (line: string) => {
+  const match = line.trim().match(imageLinePattern);
+  return Boolean(match?.[1].split("|").some((option) => option === "layout=row"));
+};
+
+const groupRowImages = (markdown: string) => {
+  const groupedLines: string[] = [];
+  let rowImages: string[] = [];
+
+  const flushRowImages = () => {
+    if (rowImages.length > 0) {
+      groupedLines.push(rowImages.join(" "));
+      groupedLines.push("");
+      rowImages = [];
+    }
+  };
+
+  markdown.split("\n").forEach((line) => {
+    if (isRowImageLine(line)) {
+      rowImages.push(line.trim());
+      return;
+    }
+
+    flushRowImages();
+    groupedLines.push(line);
+  });
+
+  flushRowImages();
+  return groupedLines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+};
+
 const ArticleDetail: React.FC<ArticleDetailProps> = ({
   showAdminButtons = false,
 }) => {
@@ -53,23 +121,43 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({
     <div className="article-detail-container">
       <div className="article-header">
         <h1>{article.title}</h1>
+        {article.thumbnailUrl && (
+          <img className="article-hero-image" src={article.thumbnailUrl} alt="" />
+        )}
         <div className="article-meta">
           <span>
-            投稿日: {new Date(article.createdAt).toLocaleDateString()}
+            投稿日: {new Date(article.createdAt).toLocaleDateString("ja-JP")}
           </span>
-          <div className="tags-container">
-            {article.tags &&
-              article.tags.map((tag) => (
+          {article.tags && article.tags.length > 0 && (
+            <div className="tags-container">
+              {article.tags.map((tag) => (
                 <span key={tag} className="tag">
                   {tag}
                 </span>
               ))}
-          </div>
+            </div>
+          )}
         </div>
       </div>
       <div className="article-content">
-        <ReactMarkdown remarkPlugins={[remarkBreaks, remarkGfm]}>
-          {article.content}
+        <ReactMarkdown
+          remarkPlugins={[remarkBreaks, remarkGfm]}
+          components={{
+            img: ({ alt, src }) => {
+              const parsed = parseImageAlt(alt);
+              return (
+                <img
+                  src={src}
+                  alt={parsed.alt}
+                  data-align={parsed.align}
+                  data-layout={parsed.layout}
+                  style={parsed.width ? { width: parsed.width, maxWidth: "100%" } : undefined}
+                />
+              );
+            },
+          }}
+        >
+          {groupRowImages(article.content)}
         </ReactMarkdown>
       </div>
       {showAdminButtons && article && (
@@ -78,10 +166,11 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({
             編集
           </Link>
           <button
+            type="button"
             onClick={() => navigate("/admin")}
             className="btn btn-secondary"
           >
-            管理ページに戻る
+            管理画面に戻る
           </button>
         </div>
       )}

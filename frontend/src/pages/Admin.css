@@ -70,3 +70,62 @@
 .btn-danger:hover {
   background-color: #c82333;
 }
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.notice {
+  color: #176b2c;
+  margin-bottom: 1rem;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(0, 0, 0, 0.35);
+}
+
+.password-dialog {
+  width: min(440px, 100%);
+  display: grid;
+  gap: 0.75rem;
+  padding: 1.5rem;
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.2);
+}
+
+.password-dialog h2 {
+  margin: 0;
+}
+
+.dialog-subtitle {
+  margin: 0 0 0.5rem;
+  color: #666;
+}
+
+.password-dialog label {
+  font-weight: 700;
+}
+
+.password-dialog input {
+  width: 100%;
+  padding: 0.7rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.dialog-actions {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: flex-end;
+  margin-top: 0.5rem;
+}

@@ -2,6 +2,7 @@ package cc.haruverse.backend;
 
 import cc.haruverse.backend.entity.User;
 import cc.haruverse.backend.model.AuthenticationRequest;
+import cc.haruverse.backend.model.PasswordChangeRequest;
 import cc.haruverse.backend.model.RegisterRequest;
 import cc.haruverse.backend.model.UserInfoDto;
 import cc.haruverse.backend.repository.UserRepository;
@@ -22,6 +23,7 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.Duration;
@@ -48,6 +50,9 @@ public class AuthController {
 
     @Autowired
     private LoginAttemptService loginAttemptService;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     @Value("${app.auth.cookie-name:GLIMPSE_AUTH}")
     private String authCookieName;
@@ -153,6 +158,31 @@ public class AuthController {
                 .map(user -> {
                     userRepository.delete(user);
                     return ResponseEntity.noContent().build();
+                })
+                .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @PutMapping("/users/{id}/password")
+    public ResponseEntity<?> changeUserPassword(
+            @PathVariable UUID id,
+            @RequestBody PasswordChangeRequest request
+    ) {
+        User currentUser = getCurrentUser();
+        if (!currentUser.isAdmin()) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        String password = request == null ? null : request.getPassword();
+        if (password == null || password.length() < 12 || password.length() > 100) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("message", "パスワードは12文字以上100文字以下で入力してください。"));
+        }
+
+        return userRepository.findById(id)
+                .map(user -> {
+                    user.setPassword(passwordEncoder.encode(password));
+                    userRepository.save(user);
+                    return ResponseEntity.ok(Map.of("message", "パスワードを変更しました。"));
                 })
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }

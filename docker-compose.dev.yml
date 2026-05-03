@@ -32,6 +32,12 @@ services:
       JWT_SECRET: ${JWT_SECRET}
       JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS}
       AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-false}
+      UPLOAD_DIR: /app/uploads
+      UPLOAD_MAX_FILE_SIZE: ${UPLOAD_MAX_FILE_SIZE:-5MB}
+      UPLOAD_MAX_REQUEST_SIZE: ${UPLOAD_MAX_REQUEST_SIZE:-5MB}
+      UPLOAD_MAX_FILE_SIZE_BYTES: ${UPLOAD_MAX_FILE_SIZE_BYTES:-5242880}
+    volumes:
+      - glimpse-uploads:/app/uploads
     ports:
       - "8080:8080"
 
@@ -48,3 +54,4 @@ services:
 
 volumes:
   glimpse-mysql-data:
+  glimpse-uploads:

@@ -20,6 +20,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
@@ -29,12 +30,14 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -57,6 +60,9 @@ class AuthControllerTest {
     @Mock
     private LoginAttemptService loginAttemptService;
 
+    @Mock
+    private PasswordEncoder passwordEncoder;
+
     private MockMvc mockMvc;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -69,6 +75,7 @@ class AuthControllerTest {
         ReflectionTestUtils.setField(controller, "jwtUtil", jwtUtil);
         ReflectionTestUtils.setField(controller, "userRepository", userRepository);
         ReflectionTestUtils.setField(controller, "loginAttemptService", loginAttemptService);
+        ReflectionTestUtils.setField(controller, "passwordEncoder", passwordEncoder);
         ReflectionTestUtils.setField(controller, "authCookieName", "GLIMPSE_AUTH");
         ReflectionTestUtils.setField(controller, "authCookieSecure", false);
         ReflectionTestUtils.setField(controller, "authCookieSameSite", "Lax");
@@ -195,5 +202,59 @@ class AuthControllerTest {
                 .andExpect(jsonPath("$.message").value("Administrators cannot delete themselves."));
 
         verify(userRepository, never()).delete(any(User.class));
+    }
+
+    @Test
+    void changeUserPasswordUpdatesSelectedUserForAdmin() throws Exception {
+        User admin = new User();
+        admin.setId(UUID.randomUUID());
+        admin.setUsername("admin");
+        admin.setAdmin(true);
+
+        User target = new User();
+        UUID targetId = UUID.randomUUID();
+        target.setId(targetId);
+        target.setUsername("member");
+        target.setAdmin(false);
+
+        when(userRepository.findByUsername("admin")).thenReturn(Optional.of(admin));
+        when(userRepository.findById(targetId)).thenReturn(Optional.of(target));
+        when(passwordEncoder.encode("new-strong-password")).thenReturn("encoded-password");
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken("admin", null, List.of())
+        );
+
+        mockMvc.perform(put("/api/users/{id}/password", targetId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"password\":\"new-strong-password\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("パスワードを変更しました。"));
+
+        org.junit.jupiter.api.Assertions.assertEquals("encoded-password", target.getPassword());
+        verify(userRepository).save(target);
+        verify(passwordEncoder).encode(eq("new-strong-password"));
+    }
+
+    @Test
+    void changeUserPasswordRejectsShortPassword() throws Exception {
+        User admin = new User();
+        admin.setId(UUID.randomUUID());
+        admin.setUsername("admin");
+        admin.setAdmin(true);
+
+        UUID targetId = UUID.randomUUID();
+        when(userRepository.findByUsername("admin")).thenReturn(Optional.of(admin));
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken("admin", null, List.of())
+        );
+
+        mockMvc.perform(put("/api/users/{id}/password", targetId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"password\":\"short\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("パスワードは12文字以上100文字以下で入力してください。"));
+
+        verify(userRepository, never()).findById(targetId);
+        verify(userRepository, never()).save(any(User.class));
     }
 }

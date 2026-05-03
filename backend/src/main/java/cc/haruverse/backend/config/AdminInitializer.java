@@ -40,17 +40,19 @@ public class AdminInitializer implements CommandLineRunner {
             return;
         }
 
+        if (userRepository.findByUsername(adminUsername).isPresent()) {
+            return;
+        }
+
         if (isWeakBootstrapCredential(adminUsername, adminPassword)) {
             throw new IllegalStateException("Refusing to bootstrap admin with weak default credentials.");
         }
 
-        userRepository.findByUsername(adminUsername).orElseGet(() -> {
-            User admin = new User();
-            admin.setUsername(adminUsername);
-            admin.setPassword(passwordEncoder.encode(adminPassword));
-            admin.setAdmin(true);
-            return userRepository.save(admin);
-        });
+        User admin = new User();
+        admin.setUsername(adminUsername);
+        admin.setPassword(passwordEncoder.encode(adminPassword));
+        admin.setAdmin(true);
+        userRepository.save(admin);
     }
 
     private boolean isWeakBootstrapCredential(String username, String password) {

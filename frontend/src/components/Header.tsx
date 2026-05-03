@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { AUTH_STATE_EVENT, fetchCurrentUser, logout } from '../auth';
-import './Header.css';
+import React, { useState, useEffect, useCallback } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { AUTH_STATE_EVENT, fetchCurrentUser, logout } from "../auth";
+import "./Header.css";
 
 const Header: React.FC = () => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -21,11 +21,11 @@ const Header: React.FC = () => {
     };
 
     window.addEventListener(AUTH_STATE_EVENT, handleAuthEvent);
-    window.addEventListener('focus', handleAuthEvent);
+    window.addEventListener("focus", handleAuthEvent);
 
     return () => {
       window.removeEventListener(AUTH_STATE_EVENT, handleAuthEvent);
-      window.removeEventListener('focus', handleAuthEvent);
+      window.removeEventListener("focus", handleAuthEvent);
     };
   }, [updateAuthState]);
 
@@ -33,7 +33,7 @@ const Header: React.FC = () => {
     await logout();
     setIsLoggedIn(false);
     setIsMenuOpen(false);
-    navigate('/');
+    navigate("/");
   }, [navigate]);
 
   const toggleMenu = useCallback(() => {
@@ -42,30 +42,39 @@ const Header: React.FC = () => {
 
   const closeMenu = useCallback(() => setIsMenuOpen(false), []);
 
-  const authLinkTo = isLoggedIn ? '/admin' : '/login';
+  const authLinkTo = isLoggedIn ? "/admin" : "/login";
 
   return (
     <header className="header">
       <div className="container">
-        <Link to="/" className="header-logo" onClick={closeMenu}>Glimpse</Link>
+        <Link to="/" className="header-logo" onClick={closeMenu}>
+          Glimpse
+        </Link>
         <button
           type="button"
-          className={`header-menu-toggle ${isMenuOpen ? 'open' : ''}`}
+          className={`header-menu-toggle ${isMenuOpen ? "open" : ""}`}
           onClick={toggleMenu}
-          aria-label="メニューを開く"
+          aria-expanded={isMenuOpen}
+          aria-label={isMenuOpen ? "メニューを閉じる" : "メニューを開く"}
         >
           <span />
           <span />
           <span />
         </button>
-        <nav className={`header-nav ${isMenuOpen ? 'open' : ''}`}>
+        <nav className={`header-nav ${isMenuOpen ? "open" : ""}`}>
           {isLoggedIn ? (
             <>
-              <Link to={authLinkTo} className="header-button" onClick={closeMenu}>管理</Link>
-              <button type="button" className="header-button" onClick={handleLogout}>ログアウト</button>
+              <Link to={authLinkTo} className="header-button" onClick={closeMenu}>
+                管理
+              </Link>
+              <button type="button" className="header-button" onClick={handleLogout}>
+                ログアウト
+              </button>
             </>
           ) : (
-            <Link to="/login" className="header-button" onClick={closeMenu}>ログイン</Link>
+            <Link to="/login" className="header-button" onClick={closeMenu}>
+              ログイン
+            </Link>
           )}
         </nav>
       </div>

@@ -17,6 +17,14 @@
   margin-bottom: 1rem;
 }
 
+.article-hero-image {
+  width: 100%;
+  max-height: 420px;
+  object-fit: cover;
+  border-radius: 6px;
+  margin-bottom: 1rem;
+}
+
 .article-meta {
   display: flex;
   align-items: center;
@@ -40,6 +48,51 @@
 .article-content {
   line-height: 1.8;
   font-size: 1.1rem;
+}
+
+.article-content p {
+  text-align: left;
+}
+
+.article-content p:has(img[data-align="left"]),
+.article-content p:has(img[data-align="center"]),
+.article-content p:has(img[data-align="right"]) {
+  display: flex;
+}
+
+.article-content p:has(img[data-align="left"]) {
+  justify-content: flex-start;
+}
+
+.article-content p:has(img[data-align="center"]) {
+  justify-content: center;
+}
+
+.article-content p:has(img[data-align="right"]) {
+  justify-content: flex-end;
+}
+
+.article-content p:has(img[data-layout="row"]) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 0.75rem;
+}
+
+.article-content p:has(img[data-layout="row"]) img {
+  flex: 1 1 260px;
+  max-width: calc(50% - 0.375rem) !important;
+}
+
+.article-content p:has(img[data-layout="row"]) br {
+  display: none;
+}
+
+.article-content img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 6px;
 }
 
 .error {
@@ -86,4 +139,10 @@
 
 .btn-secondary:hover {
   background-color: #5a6268;
+}
+
+@media (max-width: 640px) {
+  .article-content p:has(img[data-layout="row"]) img {
+    max-width: 100% !important;
+  }
 }

@@ -31,6 +31,9 @@ public class Article {
     @Column(columnDefinition = "TEXT", nullable = false)
     private String content;
 
+    @Column(name = "thumbnail_url")
+    private String thumbnailUrl;
+
     @Column(nullable = false, columnDefinition = "BINARY(16)")
     private UUID authorId;
 
@@ -90,6 +93,14 @@ public class Article {
 
     public void setContent(String content) {
         this.content = content;
+    }
+
+    public String getThumbnailUrl() {
+        return thumbnailUrl;
+    }
+
+    public void setThumbnailUrl(String thumbnailUrl) {
+        this.thumbnailUrl = thumbnailUrl;
     }
 
     public UUID getAuthorId() {
