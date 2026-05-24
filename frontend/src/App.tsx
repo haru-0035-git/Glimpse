@@ -18,9 +18,9 @@ function App() {
           <Route path="/articles/:id" element={<ArticleDetail />} />
           <Route path="/login" element={<Login />} />
           <Route path="/admin" element={<ProtectedRoute><Admin /></ProtectedRoute>} />
-          <Route path="/admin/new" element={<ProtectedRoute><ArticleForm /></ProtectedRoute>} />
-          <Route path="/admin/edit/:id" element={<ProtectedRoute><ArticleForm /></ProtectedRoute>} />
-          <Route path="/admin/articles/:id" element={<ProtectedRoute><ArticleDetail showAdminButtons={true} /></ProtectedRoute>} />
+          <Route path="/admin/new" element={<ProtectedRoute requireAdmin><ArticleForm /></ProtectedRoute>} />
+          <Route path="/admin/edit/:id" element={<ProtectedRoute requireAdmin><ArticleForm /></ProtectedRoute>} />
+          <Route path="/admin/articles/:id" element={<ProtectedRoute requireAdmin><ArticleDetail showAdminButtons={true} /></ProtectedRoute>} />
         </Routes>
       </main>
     </Router>

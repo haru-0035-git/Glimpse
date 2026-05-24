@@ -10,6 +10,16 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 2rem;
+  gap: 1rem;
+}
+
+.admin-header h1 {
+  margin: 0;
+}
+
+.admin-subtitle {
+  margin: 0.4rem 0 0;
+  color: #666;
 }
 
 .admin-table {
@@ -47,7 +57,7 @@
 
 .actions .btn {
   flex: 1;
-  margin-right: 0; /* Remove the margin from the buttons inside actions */
+  margin-right: 0;
 }
 
 .btn-primary {
@@ -79,6 +89,43 @@
 .notice {
   color: #176b2c;
   margin-bottom: 1rem;
+}
+
+.user-create-panel {
+  margin-top: 2rem;
+  padding: 1.25rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  background: #fafafa;
+}
+
+.user-create-panel h2 {
+  margin: 0 0 1rem;
+}
+
+.user-create-form {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(160px, 1fr)) auto;
+  gap: 0.75rem;
+  align-items: end;
+}
+
+.user-create-field {
+  min-width: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.user-create-field label {
+  font-weight: 700;
+}
+
+.user-create-field input {
+  width: 100%;
+  padding: 0.7rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 1rem;
 }
 
 .modal-backdrop {
@@ -128,4 +175,15 @@
   gap: 0.75rem;
   justify-content: flex-end;
   margin-top: 0.5rem;
+}
+
+@media (max-width: 900px) {
+  .admin-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .user-create-form {
+    grid-template-columns: 1fr;
+  }
 }

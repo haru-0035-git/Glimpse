@@ -110,7 +110,7 @@ class AuthControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.message").value("Authenticated"))
+                .andExpect(jsonPath("$.message").value("ログインしました。"))
                 .andExpect(header().string("Set-Cookie", org.hamcrest.Matchers.containsString("GLIMPSE_AUTH=signed.jwt.token")))
                 .andExpect(header().string("Set-Cookie", org.hamcrest.Matchers.containsString("HttpOnly")))
                 .andExpect(header().string("Set-Cookie", org.hamcrest.Matchers.containsString("SameSite=Lax")))
@@ -131,7 +131,7 @@ class AuthControllerTest {
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isTooManyRequests())
-                .andExpect(jsonPath("$.message").value("Too many failed login attempts. Please try again later."));
+                .andExpect(jsonPath("$.message").value("ログイン失敗が続いたため一時的に制限されています。しばらく待ってから再試行してください。"));
 
         verify(authenticationManager, never()).authenticate(any());
     }
@@ -159,7 +159,7 @@ class AuthControllerTest {
     void logoutClearsCookie() throws Exception {
         mockMvc.perform(post("/api/logout"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.message").value("Logged out"))
+                .andExpect(jsonPath("$.message").value("ログアウトしました。"))
                 .andExpect(header().string("Set-Cookie", org.hamcrest.Matchers.containsString("GLIMPSE_AUTH=")))
                 .andExpect(header().string("Set-Cookie", org.hamcrest.Matchers.containsString("Max-Age=0")));
     }
@@ -199,9 +199,68 @@ class AuthControllerTest {
 
         mockMvc.perform(delete("/api/users/{id}", id))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("Administrators cannot delete themselves."));
+                .andExpect(jsonPath("$.message").value("自分自身のアカウントは削除できません。"));
 
         verify(userRepository, never()).delete(any(User.class));
+    }
+
+    @Test
+    void createUserCreatesNonAdminUserForAdmin() throws Exception {
+        User admin = new User();
+        admin.setId(UUID.randomUUID());
+        admin.setUsername("admin");
+        admin.setAdmin(true);
+
+        when(userRepository.findByUsername("admin")).thenReturn(Optional.of(admin));
+        when(userRepository.findByUsername("member")).thenReturn(Optional.empty());
+        when(passwordEncoder.encode("member-password-2026")).thenReturn("encoded-password");
+        when(userRepository.save(any(User.class))).thenAnswer(invocation -> {
+            User saved = invocation.getArgument(0);
+            saved.setId(UUID.randomUUID());
+            return saved;
+        });
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken("admin", null, List.of())
+        );
+
+        mockMvc.perform(post("/api/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"username\":\"member\",\"password\":\"member-password-2026\"}"))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.username").value("member"))
+                .andExpect(jsonPath("$.admin").value(false));
+
+        verify(passwordEncoder).encode("member-password-2026");
+        verify(userRepository).save(org.mockito.ArgumentMatchers.argThat(user ->
+                "member".equals(user.getUsername()) && !user.isAdmin()
+        ));
+    }
+
+    @Test
+    void createUserRejectsDuplicateUsername() throws Exception {
+        User admin = new User();
+        admin.setId(UUID.randomUUID());
+        admin.setUsername("admin");
+        admin.setAdmin(true);
+
+        User existing = new User();
+        existing.setId(UUID.randomUUID());
+        existing.setUsername("member");
+        existing.setAdmin(false);
+
+        when(userRepository.findByUsername("admin")).thenReturn(Optional.of(admin));
+        when(userRepository.findByUsername("member")).thenReturn(Optional.of(existing));
+        SecurityContextHolder.getContext().setAuthentication(
+                new UsernamePasswordAuthenticationToken("admin", null, List.of())
+        );
+
+        mockMvc.perform(post("/api/users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"username\":\"member\",\"password\":\"member-password-2026\"}"))
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message").value("同じユーザー名が既に存在します。"));
+
+        verify(userRepository, never()).save(any(User.class));
     }
 
     @Test

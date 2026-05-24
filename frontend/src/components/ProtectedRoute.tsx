@@ -1,15 +1,19 @@
-import React, { useEffect, useState } from 'react';
-import { Navigate } from 'react-router-dom';
-import { fetchCurrentUser } from '../auth';
+import React, { useEffect, useState } from "react";
+import { Navigate } from "react-router-dom";
+import { fetchCurrentUser } from "../auth";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
+  requireAdmin?: boolean;
 }
 
-type AuthStatus = 'loading' | 'allowed' | 'denied';
+type AuthStatus = "loading" | "allowed" | "denied";
 
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const [status, setStatus] = useState<AuthStatus>('loading');
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
+  children,
+  requireAdmin = false,
+}) => {
+  const [status, setStatus] = useState<AuthStatus>("loading");
 
   useEffect(() => {
     let active = true;
@@ -19,7 +23,18 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
       if (!active) {
         return;
       }
-      setStatus(user?.admin ? 'allowed' : 'denied');
+
+      if (!user) {
+        setStatus("denied");
+        return;
+      }
+
+      if (requireAdmin && !user.admin) {
+        setStatus("denied");
+        return;
+      }
+
+      setStatus("allowed");
     };
 
     void verify();
@@ -27,13 +42,13 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     return () => {
       active = false;
     };
-  }, []);
+  }, [requireAdmin]);
 
-  if (status === 'loading') {
-    return <div>Loading...</div>;
+  if (status === "loading") {
+    return <div>読み込み中...</div>;
   }
 
-  if (status === 'denied') {
+  if (status === "denied") {
     return <Navigate to="/login" replace />;
   }
 

@@ -4,6 +4,7 @@ import cc.haruverse.backend.entity.User;
 import cc.haruverse.backend.model.AuthenticationRequest;
 import cc.haruverse.backend.model.PasswordChangeRequest;
 import cc.haruverse.backend.model.RegisterRequest;
+import cc.haruverse.backend.model.UserCreateRequest;
 import cc.haruverse.backend.model.UserInfoDto;
 import cc.haruverse.backend.repository.UserRepository;
 import cc.haruverse.backend.security.LoginAttemptService;
@@ -24,7 +25,14 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.time.Duration;
 import java.util.List;
@@ -74,7 +82,7 @@ public class AuthController {
 
         if (loginAttemptService.isBlocked(username, clientIp)) {
             return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
-                    .body(Map.of("message", "Too many failed login attempts. Please try again later."));
+                    .body(Map.of("message", "ログイン失敗が続いたため一時的に制限されています。しばらく待ってから再試行してください。"));
         }
 
         try {
@@ -100,7 +108,7 @@ public class AuthController {
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, authCookie.toString());
 
-        return ResponseEntity.ok(Map.of("message", "Authenticated"));
+        return ResponseEntity.ok(Map.of("message", "ログインしました。"));
     }
 
     @PostMapping("/logout")
@@ -114,13 +122,13 @@ public class AuthController {
                 .build();
         response.addHeader(HttpHeaders.SET_COOKIE, clearCookie.toString());
         SecurityContextHolder.clearContext();
-        return ResponseEntity.ok(Map.of("message", "Logged out"));
+        return ResponseEntity.ok(Map.of("message", "ログアウトしました。"));
     }
 
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@Valid @RequestBody RegisterRequest request) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                .body(Map.of("message", "Registration is disabled for this site."));
+                .body(Map.of("message", "このサイトでは新規登録を停止しています。"));
     }
 
     @GetMapping("/me")
@@ -143,6 +151,27 @@ public class AuthController {
         return ResponseEntity.ok(users);
     }
 
+    @PostMapping("/users")
+    public ResponseEntity<?> createUser(@Valid @RequestBody UserCreateRequest request) {
+        User currentUser = getCurrentUser();
+        if (!currentUser.isAdmin()) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        String username = request.getUsername().trim();
+        if (userRepository.findByUsername(username).isPresent()) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(Map.of("message", "同じユーザー名が既に存在します。"));
+        }
+
+        User user = new User();
+        user.setUsername(username);
+        user.setPassword(passwordEncoder.encode(request.getPassword()));
+        user.setAdmin(false);
+        User savedUser = userRepository.save(user);
+        return ResponseEntity.status(HttpStatus.CREATED).body(new UserInfoDto(savedUser));
+    }
+
     @DeleteMapping("/users/{id}")
     public ResponseEntity<?> deleteUser(@PathVariable UUID id) {
         User currentUser = getCurrentUser();
@@ -151,7 +180,7 @@ public class AuthController {
         }
         if (currentUser.getId().equals(id)) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body(Map.of("message", "Administrators cannot delete themselves."));
+                    .body(Map.of("message", "自分自身のアカウントは削除できません。"));
         }
 
         return userRepository.findById(id)
