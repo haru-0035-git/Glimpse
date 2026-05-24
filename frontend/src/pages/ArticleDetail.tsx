@@ -46,37 +46,57 @@ const parseImageAlt = (alt?: string) => {
   return parsed;
 };
 
-const imageLinePattern = /^!\[([^\]]*)\]\(([^)]+)\)$/;
+const imageTokenPattern = /!\[[^\]]*]\([^)]+\)/g;
 
-const isRowImageLine = (line: string) => {
-  const match = line.trim().match(imageLinePattern);
-  return Boolean(match?.[1].split("|").some((option) => option === "layout=row"));
+const isRowImageToken = (token: string) => {
+  const alt = token.match(/^!\[([^\]]*)]/)?.[1] ?? "";
+  return alt.split("|").some((option) => option === "layout=row");
 };
 
-const groupRowImages = (markdown: string) => {
-  const groupedLines: string[] = [];
+const normalizeArticleMarkdown = (markdown: string) => {
+  const tokenized = markdown.replace(imageTokenPattern, (match) => `\n${match}\n`);
+  const normalizedLines: string[] = [];
   let rowImages: string[] = [];
 
   const flushRowImages = () => {
-    if (rowImages.length > 0) {
-      groupedLines.push(rowImages.join(" "));
-      groupedLines.push("");
-      rowImages = [];
+    if (rowImages.length === 0) {
+      return;
     }
+
+    normalizedLines.push("");
+    normalizedLines.push(rowImages.join(" "));
+    normalizedLines.push("");
+    rowImages = [];
   };
 
-  markdown.split("\n").forEach((line) => {
-    if (isRowImageLine(line)) {
-      rowImages.push(line.trim());
+  tokenized.split("\n").forEach((rawLine) => {
+    const line = rawLine.trim();
+
+    if (!line) {
+      flushRowImages();
+      normalizedLines.push("");
+      return;
+    }
+
+    if (line.match(/^!\[[^\]]*]\([^)]+\)$/)) {
+      if (isRowImageToken(line)) {
+        rowImages.push(line);
+        return;
+      }
+
+      flushRowImages();
+      normalizedLines.push("");
+      normalizedLines.push(line);
+      normalizedLines.push("");
       return;
     }
 
     flushRowImages();
-    groupedLines.push(line);
+    normalizedLines.push(rawLine);
   });
 
   flushRowImages();
-  return groupedLines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
+  return normalizedLines.join("\n").replace(/\n{3,}/g, "\n\n").trim();
 };
 
 const ArticleDetail: React.FC<ArticleDetailProps> = ({
@@ -157,7 +177,7 @@ const ArticleDetail: React.FC<ArticleDetailProps> = ({
             },
           }}
         >
-          {groupRowImages(article.content)}
+          {normalizeArticleMarkdown(article.content)}
         </ReactMarkdown>
       </div>
       {showAdminButtons && article && (
