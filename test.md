@@ -1,6 +1,7 @@
 ﻿# セキュリティテストチェックリスト
 
 ## 自動テスト
+
 - [x] 2026-03-29 に `./mvnw.cmd test` を実行し、バックエンドの自動テストがすべて成功した
 - [x] ログイン成功時に `HttpOnly` な認証 Cookie が発行される (`AuthControllerTest.authenticateSetsHttpOnlyCookieOnSuccess`)
 - [x] ログイン失敗回数制限に達すると `429 Too Many Requests` を返す (`AuthControllerTest.authenticateReturnsTooManyRequestsWhenBlocked`)
@@ -23,13 +24,14 @@
 - [x] `XSRF-TOKEN` Cookie と `X-XSRF-TOKEN` ヘッダを付けた `/api/logout` は成功する (`SecurityCsrfIntegrationTest.logoutWithCsrfTokenIsAllowed`)
 
 ## 手動確認
+
 - [x] ログイン成功時に `GLIMPSE_AUTH` Cookie が `HttpOnly` 付きで発行される
 - [x] ブラウザの `localStorage` に `jwtToken` が保存されていない
 - [x] ログアウト後に認証 Cookie が消え、`/admin` にアクセスできなくなる
-- [ ] `XSRF-TOKEN` Cookie が発行され、`POST` / `PUT` / `DELETE` 時に `X-XSRF-TOKEN` ヘッダが送信される
-- [ ] `Authorization` ヘッダに不正な JWT を入れても `500` にならない
-- [ ] ログイン失敗を繰り返すと、設定した回数超過後に `HTTP 429` が返る
+- [x] `XSRF-TOKEN` Cookie が発行され、`POST` / `PUT` / `DELETE` 時に `X-XSRF-TOKEN` ヘッダが送信される
+- [x] `Authorization` ヘッダに不正な JWT を入れても `500` にならない
+- [x] ログイン失敗を繰り返すと、設定した回数超過後に `HTTP 429` が返る
 - [x] 記事本文に `<script>` や `onerror=` を含めてもブラウザで実行されない
-- [ ] `X-XSRF-TOKEN` ヘッダなしの `POST` / `PUT` / `DELETE` は `403 Forbidden` になる
+- [x] `X-XSRF-TOKEN` ヘッダなしの `POST` / `PUT` / `DELETE` は `403 Forbidden` になる
 - [x] `APP_ADMIN_PASSWORD=change_me` で起動するとアプリが起動失敗する
 - [x] `JWT_SECRET` が未設定、または短すぎる場合に起動失敗する
